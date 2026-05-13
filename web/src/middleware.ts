@@ -44,7 +44,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return next();
   }
 
-  const redirects = await getRedirects(isDraftModeEnabled(context.cookies));
+  // Prerendered routes have no request headers/cookies. Touching
+  // `context.cookies` there triggers Astro warnings.
+  const preview = context.isPrerendered ? false : isDraftModeEnabled(context.cookies);
+  const redirects = await getRedirects(preview);
   const match = redirects.find((item) => normalizePath(item.source || "") === pathname);
 
   if (!match?.destination) return next();

@@ -9,7 +9,6 @@ import { resolve } from "./presentation/resolve";
 import { structure } from "./structure";
 import { defaultDocumentNode } from "./defaultDocumentNode";
 import { codeInput } from "@sanity/code-input";
-import { applyHybridPresetAction } from "./document-actions/apply-hybrid-preset-action";
 import { convertPageToPostAction } from "./document-actions/convert-page-to-post-action";
 
 // Define the actions that should be available for singleton documents
@@ -55,7 +54,7 @@ export default defineConfig({
       }
 
       if (context.schemaType === "page") {
-        return [applyHybridPresetAction, convertPageToPostAction, ...input];
+        return [convertPageToPostAction, ...input];
       }
 
       return input;

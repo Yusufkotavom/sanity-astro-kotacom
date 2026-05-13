@@ -62,7 +62,7 @@ export default defineType({
       of: [
         defineArrayMember({
           type: "object",
-          name: "serviceType",
+          name: "serviceTypeItem",
           fields: [
             defineField({
               name: "title",

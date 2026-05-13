@@ -80,6 +80,7 @@ interface Props extends HTMLAttributes<'header'> {
     target?: string;
     buttonVariant?: 'primary' | 'outline' | 'ghost' | 'link' | 'secondary' | 'destructive';
   };
+  whatsAppCta?: { label?: string; href?: string };
   secondaryCta?: { label?: string; href?: string; icon?: string; trailingIcon?: string };
   actions?: HeaderAction[];
   showThemeToggle?: boolean;
@@ -113,6 +114,7 @@ const {
   extraNav = [],
   showCta = false,
   cta = { label: 'Start a project', href: '/contact' },
+  whatsAppCta,
   secondaryCta,
   actions = [],
   showThemeToggle = true,
@@ -157,6 +159,7 @@ const currentPath = Astro.url.pathname;
 const isLandingPage = currentPath === '/';
 const ctaHref = cta.href?.startsWith('#') && !isLandingPage ? `/${cta.href}` : cta.href;
 const secondaryCtaHref = secondaryCta?.href?.startsWith('#') && !isLandingPage ? `/${secondaryCta.href}` : secondaryCta?.href;
+const whatsAppCtaHref = whatsAppCta?.href?.startsWith('#') && !isLandingPage ? `/${whatsAppCta.href}` : whatsAppCta?.href;
 
 const hasLogoSlot = Astro.slots.has('logo');
 const hasNavSlot = Astro.slots.has('nav');
@@ -192,6 +195,14 @@ const buttonId = `${menuId}-button`;
 function normalizeHref(href: string): string {
   return href.startsWith('#') && !isLandingPage ? `/${href}` : href;
 }
+
+function isWhatsAppHref(href?: string): boolean {
+  return Boolean(href && /(wa\.me|api\.whatsapp\.com|whatsapp\.com\/send)/i.test(href));
+}
+
+const ctaIsWhatsApp = isWhatsAppHref(ctaHref);
+const secondaryCtaIsWhatsApp = isWhatsAppHref(secondaryCtaHref);
+const showMobileWhatsApp = Boolean(whatsAppCtaHref) && !ctaIsWhatsApp && !secondaryCtaIsWhatsApp;
 
 function hasChildren(item: NavItem): boolean {
   return Array.isArray(item.children) && item.children.length > 0;
@@ -250,13 +261,13 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
           <nav class="hidden items-center gap-1 md:flex" aria-label="Main navigation">
             {mainItems.map((item) =>
               hasChildren(item) ? (
-                <div class="group relative">
+                <div class="group relative menu-group">
                   <button
                     type="button"
                     data-unified-mega-menu-trigger={item.key || item.label}
                     aria-expanded="false"
                     class={cn(
-                      'nav-link relative inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm',
+                      'nav-link relative inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm',
                       'transition-all duration-(--transition-fast)',
                       isFloating && 'hdr-invert-text',
                       isFloating
@@ -271,12 +282,12 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
                   </button>
                   <div
                     data-unified-mega-menu-content={item.key || item.label}
-                    class="invisible absolute left-1/2 top-full z-50 mt-2 w-[min(920px,calc(100vw-4rem))] -translate-x-1/2 rounded-2xl border border-border/70 bg-background/95 p-5 opacity-0 shadow-[0_24px_70px_-28px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+                    class="invisible absolute left-1/2 top-full z-50 mt-3 w-[min(940px,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-border/75 bg-background/96 p-4 opacity-0 shadow-[0_26px_76px_-34px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-150"
                   >
-                    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                       {groupChildren(item).map((group) => (
-                        <div class="space-y-2">
-                          <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground/45">{group.name}</p>
+                        <div class="space-y-2 rounded-xl border border-border/50 bg-background-secondary/60 p-3">
+                          <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground/55">{group.name}</p>
                           <ul class="space-y-1">
                             {group.items.map((child) => (
                               <li>
@@ -285,7 +296,7 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
                                   target={child.target}
                                   rel={child.target === '_blank' ? 'noopener noreferrer' : undefined}
                                   role="menuitem"
-                                  class="block rounded-lg border border-transparent px-2.5 py-2.5 transition-colors hover:border-border/70 hover:bg-accent/65"
+                                  class="block rounded-lg border border-transparent px-2.5 py-2 transition-colors hover:border-border/75 hover:bg-accent/70"
                                 >
                                   <div class="flex items-center gap-2">
                                     <span class="text-sm font-medium text-foreground">{child.label}</span>
@@ -313,7 +324,7 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
                   target={item.target}
                   rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
                   class={cn(
-                    'nav-link relative rounded-md px-3 py-2 text-sm',
+                    'nav-link relative rounded-full px-3 py-2 text-sm',
                     'transition-all duration-(--transition-fast)',
                     isFloating && 'hdr-invert-text',
                     isFloating
@@ -329,13 +340,13 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
               )
             )}
             {moreItems.length > 0 && (
-              <div class="group relative">
+              <div class="group relative menu-group">
                 <button
                   type="button"
                   data-unified-mega-menu-trigger="more-menu"
                   aria-expanded="false"
                   class={cn(
-                    'nav-link relative inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm',
+                    'nav-link relative inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm',
                     'transition-all duration-(--transition-fast)',
                     isFloating && 'hdr-invert-text',
                     'nav-link-inactive font-medium text-foreground-muted hover:text-foreground hover:bg-secondary/70'
@@ -346,7 +357,7 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
                 </button>
                 <div
                   data-unified-mega-menu-content="more-menu"
-                  class="invisible absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-border/70 bg-background/95 p-2 opacity-0 shadow-[0_24px_70px_-28px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+                  class="invisible absolute right-0 top-full z-50 mt-3 w-[18rem] rounded-2xl border border-border/75 bg-background/96 p-2 opacity-0 shadow-[0_24px_70px_-30px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-150"
                 >
                   {moreItems.map((item) => (
                     <div class="mb-1 last:mb-0">
@@ -354,7 +365,7 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
                         href={normalizeHref(item.href)}
                         target={item.target}
                         rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
-                        class="block rounded-xl px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/65"
+                        class="block rounded-xl px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/70"
                       >
                         {item.label}
                       </a>
@@ -460,6 +471,7 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
                     href={secondaryCtaHref}
                     target={secondaryCtaHref.startsWith('http') ? '_blank' : undefined}
                     class={cn('mr-2', isFloating ? 'hdr-invert-text' : undefined)}
+                    data-wa-dynamic={secondaryCtaIsWhatsApp ? 'true' : undefined}
                   >
                     {secondaryCta.icon && <Icon name={secondaryCta.icon} size="sm" />}
                     {secondaryCta.label}
@@ -472,6 +484,7 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
                   href={ctaHref}
                   target={cta.target || (ctaHref?.startsWith('http') ? '_blank' : undefined)}
                   class={cn('hdr-cta-brand', isFloating ? 'hdr-invert-cta' : undefined)}
+                  data-wa-dynamic={ctaIsWhatsApp ? 'true' : undefined}
                 >
                   {cta.icon && <Icon name={cta.icon} size="sm" />}
                   {cta.label}
@@ -660,6 +673,7 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
                     href={secondaryCtaHref}
                     target={secondaryCtaHref.startsWith('http') ? '_blank' : undefined}
                     class="mb-2"
+                    data-wa-dynamic={secondaryCtaIsWhatsApp ? 'true' : undefined}
                   >
                     {secondaryCta.icon && <Icon name={secondaryCta.icon} size="sm" />}
                     {secondaryCta.label}
@@ -671,10 +685,27 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
                   variant={cta.buttonVariant || 'primary'}
                   href={ctaHref}
                   target={cta.target || (ctaHref?.startsWith('http') ? '_blank' : undefined)}
+                  data-wa-dynamic={ctaIsWhatsApp ? 'true' : undefined}
                 >
                   {cta.icon && <Icon name={cta.icon} size="sm" />}
                   {cta.label}
                   {cta.trailingIcon && <Icon name={cta.trailingIcon} size="sm" />}
+                </Button>
+              </div>
+            )}
+
+            {showMobileWhatsApp && (
+              <div class="border-border mt-3 border-t pt-3">
+                <Button
+                  fullWidth
+                  variant="outline"
+                  href={whatsAppCtaHref}
+                  target={whatsAppCtaHref?.startsWith('http') ? '_blank' : undefined}
+                  class="border-emerald-500/35 bg-emerald-500/10 text-emerald-700 hover:border-emerald-500/50 hover:bg-emerald-500/15 dark:border-emerald-400/30 dark:bg-emerald-500/15 dark:text-emerald-300"
+                  data-wa-dynamic="true"
+                >
+                  <Icon name="message-circle" size="sm" />
+                  {whatsAppCta?.label || 'Chat via WhatsApp'}
                 </Button>
               </div>
             )}
@@ -876,6 +907,12 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
 
       group.addEventListener('mouseenter', openMenu);
       group.addEventListener('mouseleave', closeMenu);
+      group.addEventListener('focusin', openMenu);
+      group.addEventListener('focusout', (event) => {
+        if (!group.contains(event.relatedTarget as Node)) {
+          closeMenu();
+        }
+      });
       trigger.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
           closeMenu();
@@ -1082,7 +1119,7 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
 </script>
 
 <style is:global>
-  .group.menu-open [data-unified-mega-menu-content] {
+  .menu-group.menu-open [data-unified-mega-menu-content] {
     visibility: visible;
     opacity: 1;
   }

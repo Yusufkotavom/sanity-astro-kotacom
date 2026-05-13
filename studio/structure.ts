@@ -16,7 +16,6 @@ import {
   Link2,
   Blocks,
   Bot,
-  MapPin,
 } from "lucide-react";
 
 const createBulkTableItem = (
@@ -138,18 +137,8 @@ export const structure = (S: any, context: any) =>
               createBulkTableItem(S, context, { type: "faq", title: "FAQs Table", icon: ListCollapse }),
               createBulkTableItem(S, context, { type: "testimonial", title: "Testimonials Table", icon: Quote }),
               createBulkTableItem(S, context, { type: "reusableSection", title: "Reusable Sections Table", icon: Blocks }),
-              createBulkTableItem(S, context, { type: "location", title: "Locations Table", icon: MapPin }),
               createBulkTableItem(S, context, { type: "redirect", title: "Redirects Table", icon: Link2 }),
             ])
-        ),
-      S.listItem()
-        .title("Locations")
-        .icon(MapPin)
-        .schemaType("location")
-        .child(
-          S.documentTypeList("location")
-            .title("Locations")
-            .defaultOrdering([{ field: "title", direction: "asc" }])
         ),
       S.listItem()
         .title("Redirects")

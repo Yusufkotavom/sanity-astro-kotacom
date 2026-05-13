@@ -5,6 +5,7 @@ import {
   getLocales,
   defaultLocale,
   swapLocaleInPath,
+  getLocaleFromPath,
 } from '@/i18n';
 
 interface Props {
@@ -66,7 +67,7 @@ const localeMap: Record<string, string> = {
   pt: 'pt_BR', nl: 'nl_NL', ja: 'ja_JP', ko: 'ko_KR', zh: 'zh_CN',
   ru: 'ru_RU', ar: 'ar_SA', hi: 'hi_IN', pl: 'pl_PL', sv: 'sv_SE',
 };
-const rawLocale = Astro.currentLocale || 'en_US';
+const rawLocale = getLocaleFromPath(Astro.url.pathname) || 'en';
 const locale = rawLocale.includes('_') || rawLocale.includes('-')
   ? rawLocale.replace('-', '_')
   : (localeMap[rawLocale] || `${rawLocale}_${rawLocale.toUpperCase()}`);
