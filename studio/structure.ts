@@ -17,7 +17,6 @@ import {
   Blocks,
   Bot,
   MapPin,
-  LayoutTemplate,
 } from "lucide-react";
 
 const createBulkTableItem = (
@@ -141,56 +140,6 @@ export const structure = (S: any, context: any) =>
               createBulkTableItem(S, context, { type: "reusableSection", title: "Reusable Sections Table", icon: Blocks }),
               createBulkTableItem(S, context, { type: "location", title: "Locations Table", icon: MapPin }),
               createBulkTableItem(S, context, { type: "redirect", title: "Redirects Table", icon: Link2 }),
-              S.divider(),
-              createBulkTableItem(S, context, {
-                type: "pageTemplate",
-                title: "Legacy Page Templates Table",
-                icon: LayoutTemplate,
-              }),
-              createBulkTableItem(S, context, {
-                type: "pageLocation",
-                title: "Legacy Page Locations Table",
-                icon: MapPin,
-              }),
-              createBulkTableItem(S, context, {
-                type: "serviceLocation",
-                title: "Legacy Service Locations Table",
-                icon: MapPin,
-              }),
-            ])
-        ),
-      S.listItem()
-        .title("Legacy Templating")
-        .icon(LayoutTemplate)
-        .child(
-          S.list()
-            .title("Legacy Templating")
-            .items([
-              orderableDocumentListDeskItem({
-                type: "pageTemplate",
-                title: "Legacy Page Templates",
-                icon: LayoutTemplate,
-                S,
-                context,
-              }),
-              S.listItem()
-                .title("Legacy Page Locations")
-                .icon(MapPin)
-                .schemaType("pageLocation")
-                .child(
-                  S.documentTypeList("pageLocation")
-                    .title("Legacy Page Locations")
-                    .defaultOrdering([{ field: "_updatedAt", direction: "desc" }])
-                ),
-              S.listItem()
-                .title("Legacy Service Locations")
-                .icon(MapPin)
-                .schemaType("serviceLocation")
-                .child(
-                  S.documentTypeList("serviceLocation")
-                    .title("Legacy Service Locations")
-                    .defaultOrdering([{ field: "_updatedAt", direction: "desc" }])
-                ),
             ])
         ),
       S.listItem()

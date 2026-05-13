@@ -124,25 +124,7 @@ function resolveImage(page: PageDocument) {
   return firstHeroWithImage?.image ? clone(firstHeroWithImage.image) : undefined;
 }
 
-function extractLegacyContentBlocks(blocks: Array<Record<string, any>> = []) {
-  return blocks
-    .filter((block) => `${block?._type || ""}` === "legacy-rich-content")
-    .map((block, index) => ({
-      ...clone(block),
-      _key: block?._key || `legacy-rich-content-${index}`,
-    }));
-}
-
 function extractPortableBody(blocks: Array<Record<string, any>> = []) {
-  const richBlocks = extractLegacyContentBlocks(blocks);
-  if (richBlocks.length > 0) {
-    return {
-      body: richBlocks,
-      warnings: [] as string[],
-      source: "legacy-rich-content",
-    };
-  }
-
   const portable: Array<Record<string, unknown>> = [];
   const warnings: string[] = [];
 
@@ -181,11 +163,11 @@ function extractPortableBody(blocks: Array<Record<string, any>> = []) {
 
   if (portable.length === 0) {
     warnings.push(
-      "Tidak ada legacy-rich-content atau body text yang cukup jelas. Draft post dibuat tanpa body.",
+      "Tidak ada body text yang cukup jelas. Draft post dibuat tanpa body.",
     );
   } else {
     warnings.push(
-      "Body post dibentuk dari hero/section-header karena page tidak memiliki legacy-rich-content.",
+      "Body post dibentuk dari hero/section-header.",
     );
   }
 

@@ -26,7 +26,6 @@ const pageBlocks = defineField({
     { type: "faqs" },
     { type: "form-newsletter" },
     { type: "all-posts" },
-    { type: "legacy-rich-content" },
     { type: "company-info" },
     { type: "testimonials-block" },
     { type: "pricing-block" },
@@ -94,11 +93,6 @@ const pageBlocks = defineField({
           name: "all-posts",
           title: "All Posts",
           of: ["all-posts"],
-        },
-        {
-          name: "legacy",
-          title: "Legacy",
-          of: ["legacy-rich-content"],
         },
         {
           name: "seo",

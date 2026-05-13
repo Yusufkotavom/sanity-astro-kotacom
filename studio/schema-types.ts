@@ -13,14 +13,9 @@ import navigation from "./schemas/documents/navigation";
 import settings from "./schemas/documents/settings";
 import themeSettings from "./schemas/documents/theme-settings";
 import seoSettings from "./schemas/documents/seo-settings";
-import pageTemplate from "./schemas/documents/page-template";
-import pageLocation from "./schemas/documents/page-location";
-import serviceLocation from "./schemas/documents/service-location";
-import location from "./schemas/documents/location";
 import redirect from "./schemas/documents/redirect";
 import reusableSection from "./schemas/documents/reusable-section";
 import seoOpsSettings from "./schemas/documents/seo-ops-settings";
-import legacyPage from "./schemas/documents/legacy-page";
 import siteSettings from "./schemas/documents/site-settings";
 import homeContent from "./schemas/documents/home-content";
 import whyChooseReason from "./schemas/documents/why-choose-reason";
@@ -39,18 +34,6 @@ import sectionPadding from "./schemas/blocks/shared/section-padding";
 import reviewItem from "./schemas/blocks/shared/review-item";
 import aggregateRatingObj from "./schemas/blocks/shared/aggregate-rating";
 import affiliateItem from "./schemas/blocks/shared/affiliate-item";
-import templateCtaLink from "./schemas/objects/template-cta-link";
-import templateFaq from "./schemas/objects/template-faq";
-import templateServiceType from "./schemas/objects/template-service-type";
-import templatePricingPlan from "./schemas/objects/template-pricing-plan";
-import templateFeature from "./schemas/objects/template-feature";
-import templateEeatPoint from "./schemas/objects/template-eeat-point";
-import templateProofItem from "./schemas/objects/template-proof-item";
-import templateTestimonial from "./schemas/objects/template-testimonial";
-import templateLongGuide from "./schemas/objects/template-long-guide";
-import templateContentVariant from "./schemas/objects/template-content-variant";
-import templateRewriteCopy from "./schemas/objects/template-rewrite-copy";
-import templateSourcePolicy from "./schemas/objects/template-source-policy";
 import pricingPackage from "./schemas/objects/pricingPackage";
 import faqItem from "./schemas/objects/faqItem";
 // Schema UI objects
@@ -78,7 +61,6 @@ import logoCloud1 from "./schemas/blocks/logo-cloud/logo-cloud-1";
 import faqs from "./schemas/blocks/faqs";
 import newsletter from "./schemas/blocks/forms/newsletter";
 import allPosts from "./schemas/blocks/all-posts";
-import legacyRichContent from "./schemas/blocks/legacy/legacy-rich-content";
 import companyInfo from "./schemas/blocks/seo/company-info";
 import faqBlock from "./schemas/blocks/seo/faq-block";
 import testimonialsBlock from "./schemas/blocks/seo/testimonials-block";
@@ -106,14 +88,9 @@ export const schemaTypes = [
   settings,
   themeSettings,
   seoSettings,
-  pageTemplate,
-  pageLocation,
-  serviceLocation,
-  location,
   seoOpsSettings,
   redirect,
   reusableSection,
-  legacyPage,
   siteSettings,
   homeContent,
   whyChooseReason,
@@ -131,18 +108,6 @@ export const schemaTypes = [
   reviewItem,
   aggregateRatingObj,
   affiliateItem,
-  templateCtaLink,
-  templateFaq,
-  templateServiceType,
-  templatePricingPlan,
-  templateFeature,
-  templateEeatPoint,
-  templateProofItem,
-  templateTestimonial,
-  templateLongGuide,
-  templateContentVariant,
-  templateRewriteCopy,
-  templateSourcePolicy,
   pricingPackage,
   faqItem,
   // blocks
@@ -170,7 +135,6 @@ export const schemaTypes = [
   faqs,
   newsletter,
   allPosts,
-  legacyRichContent,
   companyInfo,
   faqBlock,
   testimonialsBlock,

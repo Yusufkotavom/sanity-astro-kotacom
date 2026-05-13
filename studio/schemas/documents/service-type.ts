@@ -51,13 +51,6 @@ export default defineType({
       description: "Brief description of this service type",
     }),
     defineField({
-      name: "defaultTemplate",
-      title: "Default Template",
-      type: "reference",
-      description: "Default page template for this service type (can be overridden per location)",
-      to: [{ type: "pageTemplate" }],
-    }),
-    defineField({
       name: "pricing",
       title: "Pricing Info",
       type: "object",

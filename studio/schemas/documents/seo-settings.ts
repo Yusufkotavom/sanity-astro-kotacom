@@ -151,14 +151,6 @@ export default defineType({
         }),
     }),
     defineField({
-      name: "includeTemplateRoutesInSitemap",
-      title: "Include Template Routes in Sitemap",
-      type: "boolean",
-      initialValue: true,
-      description:
-        "When enabled, template-backed routes from legacy location documents are included in sitemap output.",
-    }),
-    defineField({
       name: "twitterHandle",
       title: "Twitter/X Handle",
       type: "string",
