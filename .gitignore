@@ -17,3 +17,6 @@ studio/.env
 # cache/logs
 *.log
 .DS_Store
+
+# local starter references
+starters/
