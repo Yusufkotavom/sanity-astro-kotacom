@@ -1,4 +1,4 @@
-import { toWhatsAppHref } from "@/lib/sanity/global";
+import { resolveWhatsAppCta } from "@/lib/sanity/global";
 
 type LinkItem = {
   _key?: string;
@@ -26,6 +26,16 @@ type SiteSettingsDoc = {
   socialMedia?: Record<string, string | null | undefined> | null;
 } | null;
 
+type SettingsDoc = {
+  whatsApp?: {
+    enabled?: boolean;
+    phoneNumber?: string | null;
+    predefinedText?: string | null;
+    ctaText?: string | null;
+    sourceUrl?: string | null;
+  } | null;
+} | null;
+
 export type HeaderFooterShell = {
   headerNav: Array<{
     key?: string;
@@ -46,6 +56,7 @@ export type HeaderFooterShell = {
   }>;
   footerNav: { label: string; href: string }[];
   waHref: string | null;
+  waCta?: { label: string; href: string };
   headerCta?: {
     label: string;
     href: string;
@@ -58,6 +69,7 @@ export type HeaderFooterShell = {
 export function buildShellData(
   navigation: NavigationDoc,
   siteSettings: SiteSettingsDoc,
+  settings?: SettingsDoc,
 ): HeaderFooterShell {
   const normalizeButtonVariant = (value?: LinkItem["buttonVariant"]) => {
     if (!value) return undefined;
@@ -105,7 +117,7 @@ export function buildShellData(
         }
       : undefined;
 
-  const waHref = toWhatsAppHref(siteSettings?.whatsapp || undefined);
+  const wa = resolveWhatsAppCta(siteSettings, settings);
 
   const footerSocial = Object.entries(siteSettings?.socialMedia || {})
     .filter(([, value]) => Boolean(value))
@@ -115,5 +127,12 @@ export function buildShellData(
       label: platform.charAt(0).toUpperCase() + platform.slice(1),
     }));
 
-  return { headerNav, footerNav, waHref, headerCta, footerSocial };
+  return {
+    headerNav,
+    footerNav,
+    waHref: wa?.href || null,
+    waCta: wa || undefined,
+    headerCta,
+    footerSocial,
+  };
 }

@@ -1,0 +1,158 @@
+---
+import { cn } from '@/lib/cn';
+
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<div class={cn('relative style-dropdown-wrapper', className)}>
+  <button
+    type="button"
+    id="style-dropdown-trigger"
+    aria-haspopup="true"
+    aria-expanded="false"
+    aria-label="Select UI style"
+    class={cn(
+      'inline-flex items-center gap-1.5 rounded-full border border-border-strong px-2.5 py-1.5',
+      'text-foreground-muted hover:text-foreground hover:bg-secondary',
+      'transition-colors duration-(--transition-fast)',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+    )}
+  >
+    <span class="text-[11px] font-medium tracking-wide uppercase" id="style-dropdown-label">Default</span>
+    <svg
+      class="style-chevron h-3 w-3 flex-shrink-0 transition-transform duration-200"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m6 9 6 6 6-6"/>
+    </svg>
+  </button>
+
+  <div
+    id="style-dropdown-panel"
+    role="dialog"
+    aria-label="Style mode"
+    class={cn(
+      'absolute right-0 top-full mt-2 z-50',
+      'w-40 rounded-xl border border-border bg-background shadow-lg',
+      'p-1.5 hidden'
+    )}
+  >
+    <button type="button" data-style-id="default" class="style-option w-full rounded-lg px-2.5 py-2 text-left text-sm text-foreground-muted hover:bg-secondary hover:text-foreground">
+      Default
+    </button>
+    <button type="button" data-style-id="glass" class="style-option w-full rounded-lg px-2.5 py-2 text-left text-sm text-foreground-muted hover:bg-secondary hover:text-foreground">
+      Glass
+    </button>
+    <button type="button" data-style-id="vercel" class="style-option w-full rounded-lg px-2.5 py-2 text-left text-sm text-foreground-muted hover:bg-secondary hover:text-foreground">
+      Vercel
+    </button>
+  </div>
+</div>
+
+<style>
+  .style-option[data-active] {
+    background-color: var(--color-secondary);
+    color: var(--color-foreground);
+    font-weight: 600;
+  }
+</style>
+
+<script>
+  const STORAGE_KEY = 'ui-style';
+  const VALID_STYLES = ['default', 'glass', 'vercel'] as const;
+  type StyleMode = (typeof VALID_STYLES)[number];
+  const STYLE_LABELS: Record<StyleMode, string> = {
+    default: 'Default',
+    glass: 'Glass',
+    vercel: 'Vercel',
+  };
+
+  function getActiveStyle(): StyleMode {
+    const current = document.documentElement.getAttribute('data-style');
+    if (current && VALID_STYLES.includes(current as StyleMode)) return current as StyleMode;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved && VALID_STYLES.includes(saved as StyleMode)) return saved as StyleMode;
+    } catch { /* ignored */ }
+    return 'default';
+  }
+
+  function setActiveStyle(styleId: string) {
+    const style: StyleMode = VALID_STYLES.includes(styleId as StyleMode) ? (styleId as StyleMode) : 'default';
+    document.documentElement.setAttribute('data-style', style);
+    try { localStorage.setItem(STORAGE_KEY, style); } catch { /* ignored */ }
+
+    const label = document.getElementById('style-dropdown-label');
+    if (label) label.textContent = STYLE_LABELS[style];
+
+    document.querySelectorAll<HTMLElement>('.style-option').forEach((btn) => {
+      if (btn.getAttribute('data-style-id') === style) btn.setAttribute('data-active', '');
+      else btn.removeAttribute('data-active');
+    });
+  }
+
+  function closeStyleDropdown() {
+    const panel = document.getElementById('style-dropdown-panel');
+    const trigger = document.getElementById('style-dropdown-trigger');
+    panel?.classList.add('hidden');
+    trigger?.setAttribute('aria-expanded', 'false');
+    trigger?.querySelector('.style-chevron')?.classList.remove('rotate-180');
+  }
+
+  function initStyleDropdown() {
+    const trigger = document.getElementById('style-dropdown-trigger');
+    const panel = document.getElementById('style-dropdown-panel');
+    if (!trigger || !panel) return;
+
+    setActiveStyle(getActiveStyle());
+
+    if (!trigger.dataset.styleDropdownInit) {
+      trigger.dataset.styleDropdownInit = 'true';
+
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const willOpen = panel.classList.contains('hidden');
+        if (willOpen) {
+          panel.classList.remove('hidden');
+          trigger.setAttribute('aria-expanded', 'true');
+          trigger.querySelector('.style-chevron')?.classList.add('rotate-180');
+        } else {
+          closeStyleDropdown();
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        const wrapper = trigger.closest('.style-dropdown-wrapper');
+        if (wrapper && !wrapper.contains(e.target as Node)) closeStyleDropdown();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeStyleDropdown();
+      });
+    }
+
+    document.querySelectorAll<HTMLElement>('.style-option').forEach((btn) => {
+      if (btn.dataset.styleInit) return;
+      btn.dataset.styleInit = 'true';
+      btn.addEventListener('click', () => {
+        setActiveStyle(btn.getAttribute('data-style-id') || 'default');
+        closeStyleDropdown();
+      });
+    });
+  }
+
+  initStyleDropdown();
+  document.addEventListener('astro:page-load', initStyleDropdown);
+  document.addEventListener('astro:after-swap', initStyleDropdown);
+</script>

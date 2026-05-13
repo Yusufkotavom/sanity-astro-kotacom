@@ -10,7 +10,7 @@ import CursorTrail from '@/components/effects/CursorTrail.astro';
 import { createWebsiteSchema, createOrganizationSchema, createPersonSchema, createProfessionalServiceSchema } from '@/lib/schema';
 import type { Thing, WithContext } from 'schema-dts';
 import siteConfig from '@/config/site.config';
-import { getSanityGlobalData, toWhatsAppHref } from '@/lib/sanity/global';
+import { getSanityGlobalData, resolveWhatsAppCta } from '@/lib/sanity/global';
 
 interface Props {
   title?: string;
@@ -48,8 +48,8 @@ const {
   extraSchemas = [],
   eagerReveal = false,
 } = Astro.props;
-const { siteSettings, seoSettings } = await getSanityGlobalData();
-const globalWhatsAppHref = toWhatsAppHref(siteSettings?.whatsapp);
+const { siteSettings, settings, seoSettings } = await getSanityGlobalData();
+const globalWhatsAppCta = resolveWhatsAppCta(siteSettings, settings);
 const siteName = siteSettings?.title || siteSettings?.companyName || siteConfig.name;
 const siteDescription = description || siteSettings?.description || seoSettings?.defaultDescription || siteConfig.description;
 const seoKeywords = Array.isArray(siteSettings?.keywords) ? siteSettings.keywords.filter(Boolean) : [];
@@ -95,7 +95,7 @@ schemas.push(...extraSchemas);
 ---
 
 <!doctype html>
-<html lang="en" class="scroll-smooth dark" data-theme="blue" data-theme-mode="system">
+<html lang="en" class="scroll-smooth dark" data-theme="blue" data-theme-mode="system" data-style="default">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -199,6 +199,7 @@ schemas.push(...extraSchemas);
     <script is:inline>
       (function () {
         const COLOR_THEMES = ['orange', 'amber', 'lime', 'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet', 'purple', 'magenta'];
+        const STYLE_MODES = ['default', 'glass', 'vercel'];
         const VALID_MODES = ['system', 'light', 'dark'];
 
         function getMode() {
@@ -229,9 +230,21 @@ schemas.push(...extraSchemas);
           } catch { /* ignored */ }
         }
 
+        function applyStyleMode(el) {
+          try {
+            const saved = localStorage.getItem('ui-style');
+            if (saved && STYLE_MODES.indexOf(saved) !== -1) {
+              el.setAttribute('data-style', saved);
+              return;
+            }
+          } catch { /* ignored */ }
+          el.setAttribute('data-style', 'default');
+        }
+
         function applyTheme(el) {
           applyMode(el);
           applyColorTheme(el);
+          applyStyleMode(el);
         }
 
         applyTheme(document.documentElement);
@@ -280,15 +293,15 @@ schemas.push(...extraSchemas);
 
     <CursorTrail />
 
-    {globalWhatsAppHref && (
+    {globalWhatsAppCta && (
       <a
-        href={globalWhatsAppHref}
+        href={globalWhatsAppCta.href}
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Chat WhatsApp"
         class="fixed bottom-6 left-6 z-50 inline-flex h-12 items-center justify-center rounded-full border border-green-600 bg-green-500 px-4 text-sm font-semibold text-white shadow-lg transition hover:bg-green-600"
       >
-        WhatsApp
+        {globalWhatsAppCta.label}
       </a>
     )}
 

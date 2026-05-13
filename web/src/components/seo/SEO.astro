@@ -94,6 +94,8 @@ const hreflangAlternates = i18nOn
 const xDefaultHref = i18nOn
   ? new URL(swapLocaleInPath(Astro.url.pathname, defaultLocale), Astro.site).toString()
   : null;
+const resolvedGoogleVerification = googleVerification || siteConfig.verification?.google;
+const resolvedBingVerification = bingVerification || siteConfig.verification?.bing;
 ---
 
 <!-- Primary Meta Tags -->
@@ -135,5 +137,5 @@ const xDefaultHref = i18nOn
 {(twitterCreator || siteConfig.twitter?.creator) && <meta name="twitter:creator" content={twitterCreator || siteConfig.twitter?.creator} />}
 
 <!-- Verification -->
-{(googleVerification || siteConfig.verification?.google) && <meta name="google-site-verification" content={googleVerification || siteConfig.verification.google} />}
-{(bingVerification || siteConfig.verification?.bing) && <meta name="msvalidate.01" content={bingVerification || siteConfig.verification.bing} />}
+{resolvedGoogleVerification && <meta name="google-site-verification" content={resolvedGoogleVerification} />}
+{resolvedBingVerification && <meta name="msvalidate.01" content={resolvedBingVerification} />}

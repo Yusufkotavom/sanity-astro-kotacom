@@ -62,31 +62,15 @@ const classes = cn(
 </Element>
 
 <style is:global>
-  /* Light mode: brand-600 fill — paired with brand-700 hover for a one-step darker accent */
-  html:not(.dark) .btn-primary {
-    background-color: var(--color-brand-600);
-  }
-  html:not(.dark) .btn-primary:hover {
-    background-color: var(--color-brand-700);
-  }
-
-  /*
-   * Dark mode: soften the flat near-white primary button background with a
-   * subtle top-to-bottom gradient — same principle as the hero H1 gradient.
-   * color-mix blends 55% foreground + 45% foreground-secondary so the bottom
-   * of the button is slightly dimmer and brand-tinted without looking grey.
-   * Hover clears the gradient image so the Tailwind bg-foreground/90 takes over.
-   */
-  .dark .btn-primary {
-    border: 1px solid var(--color-foreground-secondary);
-    background-image: linear-gradient(
-      180deg,
-      var(--color-foreground) 0%,
-      color-mix(in oklch, var(--color-foreground) 55%, var(--color-foreground-secondary)) 100%
-    );
+  .btn-primary {
+    background-color: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    border: 1px solid var(--btn-primary-border);
+    background-image: none;
   }
 
-  .dark .btn-primary:hover {
+  .btn-primary:hover {
+    background-color: var(--btn-primary-hover-bg);
     background-image: none;
   }
 </style>

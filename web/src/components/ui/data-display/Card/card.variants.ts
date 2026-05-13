@@ -5,11 +5,11 @@ export const cardVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-card border border-brand-500/30 hover:border-brand-500/70',
-        solid: 'bg-secondary border border-transparent',
-        outline: 'bg-transparent border-2 border-brand-500/30 hover:border-brand-500/70',
+        default: 'bg-[var(--card-surface-bg)] border border-[var(--card-border-color)]',
+        solid: 'bg-[var(--card-surface-bg)] border border-transparent',
+        outline: 'bg-transparent border-2 border-[var(--card-border-color)]',
         ghost: 'bg-transparent border border-transparent',
-        elevated: 'bg-card border border-brand-500/30 shadow-lg hover:border-brand-500/70',
+        elevated: 'bg-[var(--card-surface-bg)] border border-[var(--card-border-color)] shadow-[var(--card-shadow)]',
       },
       padding: {
         none: '',
@@ -18,7 +18,7 @@ export const cardVariants = cva(
         lg: 'p-8',
       },
       hover: {
-        true: 'hover:border-brand-500 hover:shadow-md hover:-translate-y-0.5',
+        true: 'hover:border-[var(--card-border-hover)] hover:shadow-[var(--card-shadow-hover)] hover:-translate-y-0.5',
       },
     },
     defaultVariants: {

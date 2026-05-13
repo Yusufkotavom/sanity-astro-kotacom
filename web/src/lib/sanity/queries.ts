@@ -53,6 +53,16 @@ export const SITE_SETTINGS_QUERY = `*[_type == "siteSettings"][0]{
   socialMedia
 }`;
 
+export const SETTINGS_QUERY = `*[_type == "settings"][0]{
+  whatsApp {
+    enabled,
+    phoneNumber,
+    predefinedText,
+    ctaText,
+    sourceUrl
+  }
+}`;
+
 export const SEO_SETTINGS_QUERY = `*[_type == "seoSettings"][0]{
   titleSuffix,
   defaultTitle,

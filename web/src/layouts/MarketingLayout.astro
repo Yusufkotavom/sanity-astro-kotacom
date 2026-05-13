@@ -29,8 +29,8 @@ const {
   nofollow = false,
   includeOrgSchema = false,
 } = Astro.props;
-const { navigation, siteSettings } = await getSanityGlobalData();
-const shell = buildShellData(navigation, siteSettings);
+const { navigation, siteSettings, settings } = await getSanityGlobalData();
+const shell = buildShellData(navigation, siteSettings, settings);
 ---
 
 <BaseLayout
@@ -49,9 +49,9 @@ const shell = buildShellData(navigation, siteSettings);
     position="fixed"
     colorScheme="default"
     nav={shell.headerNav}
-    showCta={Boolean(shell.waHref || shell.headerCta)}
-    cta={shell.waHref ? { label: 'WhatsApp', href: shell.waHref } : shell.headerCta}
-    secondaryCta={shell.waHref && shell.headerCta ? shell.headerCta : undefined}
+    showCta={Boolean(shell.waCta || shell.headerCta)}
+    cta={shell.waCta || shell.headerCta}
+    secondaryCta={shell.waCta && shell.headerCta ? shell.headerCta : undefined}
   />
 
   <slot />

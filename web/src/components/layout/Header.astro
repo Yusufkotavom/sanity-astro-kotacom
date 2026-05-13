@@ -31,6 +31,7 @@ import Logo from '@/components/ui/marketing/Logo/Logo.astro';
 import ThemeModeDropdown from '@/components/layout/ThemeModeDropdown.astro';
 import ThemeSelector from '@/components/layout/ThemeSelector.astro';
 import ThemeSelectorDropdown from '@/components/layout/ThemeSelectorDropdown.astro';
+import StyleSelectorDropdown from '@/components/layout/StyleSelectorDropdown.astro';
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher.astro';
 import siteConfig from '@/config/site.config';
 import { isEnabled as i18nIsEnabled } from '@/i18n';
@@ -83,6 +84,7 @@ interface Props extends HTMLAttributes<'header'> {
   actions?: HeaderAction[];
   showThemeToggle?: boolean;
   showThemeSelector?: boolean;
+  showStyleSelector?: boolean;
   showMobileMenu?: boolean;
   showActiveState?: boolean;
   logoText?: string;
@@ -115,6 +117,7 @@ const {
   actions = [],
   showThemeToggle = true,
   showThemeSelector = true,
+  showStyleSelector = true,
   showMobileMenu = true,
   showSocialLinks = false,
   showLanguageSwitcher = i18nIsEnabled(),
@@ -393,6 +396,12 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
             {showThemeSelector && (
               <div class="hidden md:flex">
                 <ThemeSelectorDropdown class={isFloating ? 'hdr-invert-text' : undefined} />
+              </div>
+            )}
+
+            {showStyleSelector && (
+              <div class="hidden md:flex">
+                <StyleSelectorDropdown class={isFloating ? 'hdr-invert-text' : undefined} />
               </div>
             )}
 
@@ -1348,5 +1357,32 @@ function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<
   html:not(.dark) [data-header-shape="floating"][data-header-returned][data-header-invert-on-return="true"] .theme-dropdown-wrapper > button:hover {
     background-color: rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 1);
+  }
+
+  /* ===== UI style mode overrides ===== */
+  html[data-style="glass"] header[data-header-shape="bar"],
+  html[data-style="vercel"] header[data-header-shape="bar"] {
+    background: var(--header-bg-bar) !important;
+    border-color: var(--header-border) !important;
+    backdrop-filter: var(--header-backdrop-blur) !important;
+    box-shadow: var(--header-shadow) !important;
+  }
+
+  html[data-style="glass"] header[data-header-shape="bar"][data-scrolled],
+  html[data-style="vercel"] header[data-header-shape="bar"][data-scrolled] {
+    background: var(--header-bg-bar-scrolled) !important;
+  }
+
+  html[data-style="glass"] [data-header-shape="floating"],
+  html[data-style="vercel"] [data-header-shape="floating"] {
+    background: var(--header-bg-bar) !important;
+    border-color: var(--header-border) !important;
+    backdrop-filter: var(--header-backdrop-blur) !important;
+    box-shadow: var(--header-shadow) !important;
+  }
+
+  html[data-style="glass"] [data-header-shape="floating"][data-scrolled],
+  html[data-style="vercel"] [data-header-shape="floating"][data-scrolled] {
+    background: var(--header-bg-bar-scrolled) !important;
   }
 </style>

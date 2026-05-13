@@ -74,9 +74,9 @@ const richTextToPlain = (body?: Block["body"]) => {
 
 const asArray = <T,>(value: T[] | undefined | null): T[] => (Array.isArray(value) ? value : []);
 
-const mapButtonVariant = (variant?: string): "default" | "outline" | "ghost" | "link" => {
+const mapButtonVariant = (variant?: string): "primary" | "outline" | "ghost" | "link" => {
   if (variant === "outline" || variant === "ghost" || variant === "link") return variant;
-  return "default";
+  return "primary";
 };
 
 const whatsappHref = (() => {
@@ -95,7 +95,7 @@ const whatsappHref = (() => {
     const desc = richTextToPlain(block.body);
 
     return (
-      <Hero key={key} layout={block._type === "hero-2" ? "split" : "centered"} size="lg" showGlow={true}>
+      <Hero layout={block._type === "hero-2" ? "split" : "centered"} size="lg" showGlow={true}>
         {block.tagLine && (
           <span slot="badge" class="inline-flex rounded-full border border-brand-500/30 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-300">
             {block.tagLine}
@@ -124,7 +124,7 @@ const whatsappHref = (() => {
   if (block._type === "stats-hero-block") {
     const links = asArray(block.links).slice(0, 2);
     return (
-      <Hero key={key} layout="centered" size="lg" showGlow={true}>
+      <Hero layout="centered" size="lg" showGlow={true}>
         {block.eyebrow && (
           <span slot="badge" class="inline-flex rounded-full border border-brand-500/30 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-300">
             {block.eyebrow}
@@ -152,7 +152,7 @@ const whatsappHref = (() => {
 
   if (block._type === "section-header") {
     return (
-      <section key={key} class="mx-auto my-10 max-w-5xl px-4">
+      <section class="mx-auto my-10 max-w-5xl px-4">
         {block.tagLine && <p class="mb-2 text-sm font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-300">{block.tagLine}</p>}
         {block.title && <h2 class="text-3xl font-bold md:text-4xl">{block.title}</h2>}
         {block.description && <p class="mt-3 max-w-3xl text-foreground-muted">{block.description}</p>}
@@ -166,7 +166,7 @@ const whatsappHref = (() => {
     const secondary = block._type === "whatsapp-cta" ? block.secondaryLink : undefined;
 
     return (
-      <section key={key} class="mx-auto my-12 max-w-5xl rounded-2xl border border-brand-500/20 bg-background-secondary px-6 py-10">
+      <section class="mx-auto my-12 max-w-5xl rounded-2xl border border-brand-500/20 bg-background-secondary px-6 py-10">
         {block.tagLine && <p class="mb-2 text-sm font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-300">{block.tagLine}</p>}
         {block.title && <h2 class="text-3xl font-bold">{block.title}</h2>}
         {desc && <p class="mt-3 text-foreground-muted">{desc}</p>}
@@ -203,7 +203,7 @@ const whatsappHref = (() => {
 
   if (block._type === "form-newsletter") {
     return (
-      <section key={key} class="mx-auto my-10 max-w-3xl rounded-xl border border-border p-6">
+      <section class="mx-auto my-10 max-w-3xl rounded-xl border border-border p-6">
         {block.consentText && <p class="mb-4 text-sm text-foreground-muted">{block.consentText}</p>}
         <NewsletterForm buttonText={block.buttonText || "Subscribe"} />
       </section>
@@ -220,7 +220,7 @@ const whatsappHref = (() => {
       .filter((it) => it.content || it.title);
 
     return (
-      <section key={key} class="mx-auto my-10 max-w-4xl px-4">
+      <section class="mx-auto my-10 max-w-4xl px-4">
         <h2 class="mb-4 text-2xl font-bold">Frequently Asked Questions</h2>
         {items.length > 0 ? <Accordion items={items} /> : <p class="text-foreground-muted">Belum ada FAQ yang terhubung.</p>}
       </section>
@@ -236,9 +236,16 @@ const whatsappHref = (() => {
       .filter((logo) => Boolean(logo.logo));
 
     return (
-      <section key={key} class="mx-auto my-10 max-w-6xl px-4">
+      <section class="mx-auto my-10 max-w-6xl px-4">
         {block.title && <h2 class="mb-4 text-center text-2xl font-bold">{block.title}</h2>}
-        {logos.length > 0 ? <SocialProof logos={logos as any} /> : <p class="text-center text-foreground-muted">Belum ada logo partner.</p>}
+        {logos.length > 0 ? (
+          <SocialProof
+            avatars={logos.map((logo) => logo.logo)}
+            text={`${logos.length}+ partner terverifikasi`}
+            size="md"
+            class="justify-center"
+          />
+        ) : <p class="text-center text-foreground-muted">Belum ada logo partner.</p>}
       </section>
     );
   }
@@ -246,7 +253,7 @@ const whatsappHref = (() => {
   if (block._type === "grid-row") {
     const cols = asArray(block.columns);
     return (
-      <section key={key} class="mx-auto my-12 max-w-6xl px-4">
+      <section class="mx-auto my-12 max-w-6xl px-4">
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {cols.map((col, index) => (
             <Card>
@@ -267,7 +274,7 @@ const whatsappHref = (() => {
   if (block._type === "split-row") {
     const cols = asArray(block.splitColumns);
     return (
-      <section key={key} class="mx-auto my-12 max-w-6xl px-4">
+      <section class="mx-auto my-12 max-w-6xl px-4">
         <div class="grid gap-6 lg:grid-cols-2">
           {cols.map((col, index) => {
             const text = richTextToPlain(col.body);
@@ -278,7 +285,7 @@ const whatsappHref = (() => {
                 {text && <p class="mt-2 text-sm text-foreground-muted">{text}</p>}
                 {Array.isArray(col.list) && col.list.length > 0 && (
                   <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-foreground-muted">
-                    {col.list.map((item) => (
+                    {col.list.map((item: any) => (
                       <li>{item.title || richTextToPlain(item.body) || "-"}</li>
                     ))}
                   </ul>
@@ -294,7 +301,7 @@ const whatsappHref = (() => {
   if (block._type === "timeline-row") {
     const timelines = asArray(block.timelines);
     return (
-      <section key={key} class="mx-auto my-12 max-w-5xl px-4">
+      <section class="mx-auto my-12 max-w-5xl px-4">
         <h2 class="mb-6 text-2xl font-bold">Timeline</h2>
         <div class="space-y-4">
           {timelines.map((item, index) => (
@@ -311,7 +318,7 @@ const whatsappHref = (() => {
 
   if (block._type === "all-posts") {
     return (
-      <section key={key} class="mx-auto my-12 max-w-6xl">
+      <section class="mx-auto my-12 max-w-6xl">
         <h2 class="mb-6 text-2xl font-bold">Latest Posts</h2>
         <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {posts.slice(0, 6).map((post) => (
@@ -331,7 +338,7 @@ const whatsappHref = (() => {
   if (block._type === "company-info") {
     const info = seoSettings?.companyInfo || {};
     return (
-      <section key={key} class="mx-auto my-12 max-w-5xl rounded-2xl border border-border p-6">
+      <section class="mx-auto my-12 max-w-5xl rounded-2xl border border-border p-6">
         <h2 class="text-2xl font-bold">{block.title || "Company Info"}</h2>
         {block.description && <p class="mt-2 text-foreground-muted">{block.description}</p>}
         <div class="mt-5 grid gap-3 sm:grid-cols-2">
@@ -349,7 +356,7 @@ const whatsappHref = (() => {
       block.category ? t?.industry?.toLowerCase() === block.category.toLowerCase() : true,
     );
     return (
-      <section key={key} class="mx-auto my-12 max-w-6xl px-4">
+      <section class="mx-auto my-12 max-w-6xl px-4">
         <h2 class="text-2xl font-bold">{block.title || "Testimonials"}</h2>
         {block.description && <p class="mt-2 text-foreground-muted">{block.description}</p>}
         <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -371,7 +378,7 @@ const whatsappHref = (() => {
       block.category ? p?.category === block.category : true,
     );
     return (
-      <section key={key} class="mx-auto my-12 max-w-6xl px-4">
+      <section class="mx-auto my-12 max-w-6xl px-4">
         <h2 class="text-2xl font-bold">{block.title || "Pricing"}</h2>
         {block.description && <p class="mt-2 text-foreground-muted">{block.description}</p>}
         <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -395,7 +402,7 @@ const whatsappHref = (() => {
           ? asArray(block.features)
           : asArray(block.valueProps);
     return (
-      <section key={key} class="mx-auto my-12 max-w-6xl px-4">
+      <section class="mx-auto my-12 max-w-6xl px-4">
         <h2 class="text-2xl font-bold">{block.title || "Highlights"}</h2>
         {(block.subtitle || block.description) && <p class="mt-2 text-foreground-muted">{block.subtitle || block.description}</p>}
         <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -413,7 +420,7 @@ const whatsappHref = (() => {
 
   if (block._type === "service-types-block") {
     return (
-      <section key={key} class="mx-auto my-12 max-w-6xl px-4">
+      <section class="mx-auto my-12 max-w-6xl px-4">
         <h2 class="text-2xl font-bold">{block.title || "Service Types"}</h2>
         {block.description && <p class="mt-2 text-foreground-muted">{block.description}</p>}
         <div class="mt-6 grid gap-4 md:grid-cols-2">
@@ -437,7 +444,7 @@ const whatsappHref = (() => {
 
   if (block._type === "problem-solution-block") {
     return (
-      <section key={key} class="mx-auto my-12 max-w-5xl rounded-2xl border border-border p-6">
+      <section class="mx-auto my-12 max-w-5xl rounded-2xl border border-border p-6">
         <h2 class="text-2xl font-bold">{block.title || "Problem & Solution"}</h2>
         <ul class="mt-4 list-disc space-y-2 pl-5 text-sm">
           {asArray(block.problems).map((p: string) => <li>{p}</li>)}
@@ -454,7 +461,7 @@ const whatsappHref = (() => {
 
   if (block._type === "carousel-1") {
     return (
-      <section key={key} class="mx-auto my-12 max-w-6xl px-4">
+      <section class="mx-auto my-12 max-w-6xl px-4">
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {asArray(block.images).map((img: any) => (
             <div class="overflow-hidden rounded-xl border border-border bg-background-secondary">
@@ -468,7 +475,7 @@ const whatsappHref = (() => {
 
   if (block._type === "carousel-2") {
     return (
-      <section key={key} class="mx-auto my-12 max-w-6xl px-4">
+      <section class="mx-auto my-12 max-w-6xl px-4">
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {asArray(block.testimonial).map((item: any) => (
             <Card>
@@ -490,7 +497,7 @@ const whatsappHref = (() => {
 
   if (block._type === "legacy-rich-content") {
     return (
-      <section key={key} class="mx-auto my-10 max-w-5xl px-4">
+      <section class="mx-auto my-10 max-w-5xl px-4">
         {block.title && <h2 class="mb-3 text-2xl font-bold">{block.title}</h2>}
         {block.description && <p class="mb-3 text-foreground-muted">{block.description}</p>}
         <article class="prose max-w-none whitespace-pre-wrap rounded-lg border border-border p-4 dark:prose-invert">
@@ -501,7 +508,7 @@ const whatsappHref = (() => {
   }
 
   return (
-    <section key={key} class="mx-auto my-8 max-w-5xl rounded-lg border border-dashed border-border p-4">
+    <section class="mx-auto my-8 max-w-5xl rounded-lg border border-dashed border-border p-4">
       <p class="text-sm text-foreground-muted">
         Block <code>{block._type}</code> belum dipetakan ke komponen Rocket.
       </p>
