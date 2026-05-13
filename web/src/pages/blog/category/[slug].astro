@@ -1,6 +1,9 @@
 ---
 import PageLayout from "@/layouts/PageLayout.astro";
 import BlogCard from "@/components/blog/BlogCard.astro";
+import Badge from "@/components/ui/data-display/Badge/Badge.astro";
+import Icon from "@/components/ui/primitives/Icon/Icon.astro";
+import { Hero } from "@/components/hero";
 import { getUnifiedBlogPosts, slugifyTag } from "@/lib/blog-unified";
 
 export const prerender = false;
@@ -10,22 +13,38 @@ const posts = (await getUnifiedBlogPosts("en")).filter((post) =>
 );
 ---
 
-<PageLayout title={`Category: ${slug}`} description={`Posts in category ${slug}`}>
-  <section class="mx-auto max-w-6xl px-4 pt-24 pb-12">
-    <h1 class="text-3xl font-bold">Category: {slug}</h1>
-    <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {(posts || []).map((post: any) => (
-        <BlogCard
-          title={post.title}
-          description={post.description || ""}
-          href={post.href}
-          publishedAt={post.publishedAt}
-          tags={post.tags || []}
-          author={post.author}
-          imageUrl={post.imageUrl}
-          svgSlug={post.svgSlug}
-        />
-      ))}
+<PageLayout title={`Category: ${slug}`} description={`Posts in category ${slug}`} showScrollProgress eagerReveal>
+  <Hero layout="centered" size="sm">
+    <Badge slot="badge" variant="brand" pill>
+      <Icon name="folder" size="sm" />
+      Category archive
+    </Badge>
+    <h1 slot="title">Category: {slug}</h1>
+    <p slot="description">Posts grouped under this category.</p>
+  </Hero>
+
+  <section class="bg-background py-[var(--space-section-md)] border-t border-border">
+    <div class="mx-auto max-w-6xl px-6">
+      {posts.length > 0 ? (
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {posts.map((post: any) => (
+            <BlogCard
+              title={post.title}
+              description={post.description || ""}
+              href={post.href}
+              publishedAt={post.publishedAt}
+              tags={post.tags || []}
+              author={post.author}
+              imageUrl={post.imageUrl}
+              svgSlug={post.svgSlug}
+            />
+          ))}
+        </div>
+      ) : (
+        <div class="py-16 text-center">
+          <p class="text-foreground-muted text-lg">No posts found in this category.</p>
+        </div>
+      )}
     </div>
   </section>
 </PageLayout>

@@ -3,18 +3,16 @@
  * Projects page
  * URL: /projects
  */
-import { Image } from 'astro:assets';
 import PageLayout from '@/layouts/PageLayout.astro';
 import Icon from '@/components/ui/primitives/Icon/Icon.astro';
 import Badge from '@/components/ui/data-display/Badge/Badge.astro';
-import Card from '@/components/ui/data-display/Card/Card.astro';
 import Button from '@/components/ui/form/Button/Button.astro';
 import { Hero } from '@/components/hero';
 import LetterGlitchBand from '@/components/patterns/LetterGlitchBand.astro';
-import { getCollection } from 'astro:content';
+import ProjectCard from '@/components/projects/ProjectCard.astro';
+import { getUnifiedProjects } from '@/lib/project-unified';
 
-const items = await getCollection('projects', ({ data }) => !data.draft);
-const projects = items.sort((a, b) => a.data.order - b.data.order);
+const projects = await getUnifiedProjects();
 ---
 
 <PageLayout
@@ -42,51 +40,17 @@ const projects = items.sort((a, b) => a.data.order - b.data.order);
 
         <div class="grid gap-6 md:grid-cols-2">
           {projects.map((project) => (
-            <Card variant="elevated" hover padding="none" href={`/projects/${project.id.replace(/\.mdx?$/, '')}`} class:list={['group overflow-hidden flex flex-col', project.data.featured && 'md:col-span-2 md:grid md:grid-cols-2 md:flex-row']} data-reveal>
-              {project.data.image && (
-                <div class="overflow-hidden">
-                  <Image
-                    src={project.data.image}
-                    alt={project.data.imageAlt || project.data.title}
-                    widths={[640, 960]}
-                    sizes={project.data.featured ? '(max-width: 768px) 640px, 480px' : '(max-width: 768px) 640px, 960px'}
-                    class:list={[
-                      'w-full object-cover transition-transform duration-300 group-hover:scale-105',
-                      project.data.featured ? 'aspect-video md:aspect-auto md:h-full' : 'aspect-video'
-                    ]}
-                    loading="lazy"
-                  />
-                </div>
-              )}
-              <div class="flex flex-1 flex-col p-6">
-                <!-- Header -->
-                <div class="mb-3 flex items-start justify-between gap-4">
-                  {!project.data.image && (
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-500/5 flex items-center justify-center text-brand-500 shrink-0">
-                      <Icon name="layers" size="sm" />
-                    </div>
-                  )}
-                  <Icon name="arrow-up-right" size="sm" class="text-foreground-muted group-hover:text-brand-500 transition-colors shrink-0 ml-auto" />
-                </div>
-
-                <!-- Title + year -->
-                <div class="mb-2 flex items-baseline gap-2">
-                  <h3 class="font-display text-lg font-bold text-foreground">{project.data.title}</h3>
-                  {project.data.year && (
-                    <span class="text-xs text-foreground-muted">{project.data.year}</span>
-                  )}
-                </div>
-
-                <p class="text-sm text-foreground-muted leading-relaxed mb-4 flex-1">{project.data.description}</p>
-
-                <!-- Tags -->
-                <div class="flex flex-wrap gap-1.5">
-                  {project.data.tags.map((tag) => (
-                    <Badge variant="brand">{tag}</Badge>
-                  ))}
-                </div>
-              </div>
-            </Card>
+            <ProjectCard
+              title={project.title}
+              description={project.description}
+              href={project.href}
+              tags={project.tags}
+              year={project.year}
+              image={project.image}
+              imageUrl={project.imageUrl}
+              imageAlt={project.imageAlt}
+              featured={project.featured}
+            />
           ))}
         </div>
       </div>

@@ -4,14 +4,34 @@ export const NAVIGATION_QUERY = `*[_type == "navigation"][0]{
     title,
     href,
     isExternal,
+    target,
+    buttonVariant,
+    badge,
+    description,
+    icon,
+    uiIcon,
     showInHeader,
     showInFooter,
-    navLocation
+    navLocation,
+    children[] {
+      _key,
+      title,
+      href,
+      isExternal,
+      target,
+      badge,
+      description,
+      group,
+      icon,
+      uiIcon
+    }
   },
   headerCta {
     title,
     href,
-    isExternal
+    isExternal,
+    target,
+    buttonVariant
   }
 }`;
 

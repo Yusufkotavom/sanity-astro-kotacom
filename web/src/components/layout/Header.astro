@@ -38,6 +38,19 @@ import { isEnabled as i18nIsEnabled } from '@/i18n';
 export interface NavItem {
   label: string;
   href: string;
+  key?: string;
+  target?: string;
+  navLocation?: 'primary' | 'more' | 'utility';
+  buttonVariant?: string;
+  children?: Array<{
+    key?: string;
+    label: string;
+    href: string;
+    target?: string;
+    badge?: string;
+    description?: string;
+    group?: string;
+  }>;
 }
 
 export interface HeaderAction {
@@ -58,7 +71,14 @@ interface Props extends HTMLAttributes<'header'> {
   nav?: NavItem[];
   extraNav?: NavItem[];
   showCta?: boolean;
-  cta?: { label?: string; href?: string; icon?: string; trailingIcon?: string };
+  cta?: {
+    label?: string;
+    href?: string;
+    icon?: string;
+    trailingIcon?: string;
+    target?: string;
+    buttonVariant?: 'primary' | 'outline' | 'ghost' | 'link' | 'secondary' | 'destructive';
+  };
   secondaryCta?: { label?: string; href?: string; icon?: string; trailingIcon?: string };
   actions?: HeaderAction[];
   showThemeToggle?: boolean;
@@ -126,6 +146,9 @@ const defaultNav = getNavItems().map((item: NavConfigItem) => ({
   href: item.href,
 }));
 const navItems: NavItem[] = nav || [...extraNav, ...defaultNav];
+const headerItems = navItems.filter((item) => item.navLocation !== 'utility');
+const mainItems = headerItems.filter((item) => item.navLocation !== 'more');
+const moreItems = headerItems.filter((item) => item.navLocation === 'more');
 
 const currentPath = Astro.url.pathname;
 const isLandingPage = currentPath === '/';
@@ -162,6 +185,25 @@ function getSocialIconData(url: string): { icon: string; label: string } {
 
 const menuId = `mobile-menu-${Math.random().toString(36).slice(2, 9)}`;
 const buttonId = `${menuId}-button`;
+
+function normalizeHref(href: string): string {
+  return href.startsWith('#') && !isLandingPage ? `/${href}` : href;
+}
+
+function hasChildren(item: NavItem): boolean {
+  return Array.isArray(item.children) && item.children.length > 0;
+}
+
+function groupChildren(item: NavItem): Array<{ name: string; items: NonNullable<NavItem['children']> }> {
+  const groups = new Map<string, NonNullable<NavItem['children']>>();
+  (item.children || []).forEach((child) => {
+    const name = child.group?.trim() || 'Menu';
+    const existing = groups.get(name) || [];
+    existing.push(child);
+    groups.set(name, existing);
+  });
+  return Array.from(groups.entries()).map(([name, items]) => ({ name, items }));
+}
 ---
 
 <header
@@ -203,26 +245,135 @@ const buttonId = `${menuId}-button`;
           </nav>
         ) : (
           <nav class="hidden items-center gap-1 md:flex" aria-label="Main navigation">
-            {navItems.map(({ label, href }) => (
-              <a
-                href={href.startsWith('#') && !isLandingPage ? `/${href}` : href}
-                class={cn(
-                  'nav-link relative rounded-md px-3 py-2 text-sm',
-                  'transition-all duration-(--transition-fast)',
-                  isFloating && 'hdr-invert-text',
-                  isFloating
-                    ? (isActive(href)
-                        ? 'hdr-nav-active font-semibold'
-                        : 'font-medium')
-                    : (isActive(href)
-                        ? 'nav-link-active font-semibold text-foreground bg-secondary'
-                        : 'nav-link-inactive font-medium text-foreground-muted hover:text-foreground hover:bg-secondary/70')
-                )}
-                aria-current={isActive(href) ? 'page' : undefined}
-              >
-                {label}
-              </a>
-            ))}
+            {mainItems.map((item) =>
+              hasChildren(item) ? (
+                <div class="group relative">
+                  <button
+                    type="button"
+                    data-unified-mega-menu-trigger={item.key || item.label}
+                    aria-expanded="false"
+                    class={cn(
+                      'nav-link relative inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm',
+                      'transition-all duration-(--transition-fast)',
+                      isFloating && 'hdr-invert-text',
+                      isFloating
+                        ? (isActive(item.href) ? 'hdr-nav-active font-semibold' : 'font-medium')
+                        : (isActive(item.href)
+                            ? 'nav-link-active font-semibold text-foreground bg-secondary'
+                            : 'nav-link-inactive font-medium text-foreground-muted hover:text-foreground hover:bg-secondary/70')
+                    )}
+                  >
+                    <span>{item.label}</span>
+                    <Icon name="chevron-down" size="xs" />
+                  </button>
+                  <div
+                    data-unified-mega-menu-content={item.key || item.label}
+                    class="invisible absolute left-1/2 top-full z-50 mt-2 w-[min(920px,calc(100vw-4rem))] -translate-x-1/2 rounded-2xl border border-border/70 bg-background/95 p-5 opacity-0 shadow-[0_24px_70px_-28px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+                  >
+                    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {groupChildren(item).map((group) => (
+                        <div class="space-y-2">
+                          <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground/45">{group.name}</p>
+                          <ul class="space-y-1">
+                            {group.items.map((child) => (
+                              <li>
+                                <a
+                                  href={normalizeHref(child.href)}
+                                  target={child.target}
+                                  rel={child.target === '_blank' ? 'noopener noreferrer' : undefined}
+                                  role="menuitem"
+                                  class="block rounded-lg border border-transparent px-2.5 py-2.5 transition-colors hover:border-border/70 hover:bg-accent/65"
+                                >
+                                  <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium text-foreground">{child.label}</span>
+                                    {child.badge && (
+                                      <span class="rounded-full border border-border/70 bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-foreground/75">
+                                        {child.badge}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {child.description && (
+                                    <p class="mt-1 line-clamp-2 text-xs text-foreground-muted">{child.description}</p>
+                                  )}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <a
+                  href={normalizeHref(item.href)}
+                  target={item.target}
+                  rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
+                  class={cn(
+                    'nav-link relative rounded-md px-3 py-2 text-sm',
+                    'transition-all duration-(--transition-fast)',
+                    isFloating && 'hdr-invert-text',
+                    isFloating
+                      ? (isActive(item.href) ? 'hdr-nav-active font-semibold' : 'font-medium')
+                      : (isActive(item.href)
+                          ? 'nav-link-active font-semibold text-foreground bg-secondary'
+                          : 'nav-link-inactive font-medium text-foreground-muted hover:text-foreground hover:bg-secondary/70')
+                  )}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                >
+                  {item.label}
+                </a>
+              )
+            )}
+            {moreItems.length > 0 && (
+              <div class="group relative">
+                <button
+                  type="button"
+                  data-unified-mega-menu-trigger="more-menu"
+                  aria-expanded="false"
+                  class={cn(
+                    'nav-link relative inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm',
+                    'transition-all duration-(--transition-fast)',
+                    isFloating && 'hdr-invert-text',
+                    'nav-link-inactive font-medium text-foreground-muted hover:text-foreground hover:bg-secondary/70'
+                  )}
+                >
+                  <span>More</span>
+                  <Icon name="chevron-down" size="xs" />
+                </button>
+                <div
+                  data-unified-mega-menu-content="more-menu"
+                  class="invisible absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-border/70 bg-background/95 p-2 opacity-0 shadow-[0_24px_70px_-28px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+                >
+                  {moreItems.map((item) => (
+                    <div class="mb-1 last:mb-0">
+                      <a
+                        href={normalizeHref(item.href)}
+                        target={item.target}
+                        rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
+                        class="block rounded-xl px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/65"
+                      >
+                        {item.label}
+                      </a>
+                      {hasChildren(item) && (
+                        <div class="ml-2 mt-1 border-l border-border/60 pl-2">
+                          {(item.children || []).map((child) => (
+                            <a
+                              href={normalizeHref(child.href)}
+                              target={child.target}
+                              rel={child.target === '_blank' ? 'noopener noreferrer' : undefined}
+                              class="block rounded-lg px-2 py-1.5 text-xs text-foreground-muted hover:bg-accent/50 hover:text-foreground"
+                            >
+                              {child.label}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </nav>
         ))
     }
@@ -307,9 +458,10 @@ const buttonId = `${menuId}-button`;
                   </Button>
                 )}
                 <Button
+                  variant={cta.buttonVariant || 'primary'}
                   size="sm"
                   href={ctaHref}
-                  target={ctaHref?.startsWith('http') ? '_blank' : undefined}
+                  target={cta.target || (ctaHref?.startsWith('http') ? '_blank' : undefined)}
                   class={cn('hdr-cta-brand', isFloating ? 'hdr-invert-cta' : undefined)}
                 >
                   {cta.icon && <Icon name={cta.icon} size="sm" />}
@@ -403,21 +555,92 @@ const buttonId = `${menuId}-button`;
             'space-y-1 py-4',
             isFloating ? 'px-4' : cn('mx-auto px-6', maxWidthClass)
           )}>
-            {navItems.map(({ label, href }) => (
-              <a
-                href={href.startsWith('#') && !isLandingPage ? `/${href}` : href}
-                class={cn(
-                  'mobile-nav-link block rounded-md px-3 py-2 text-sm',
-                  'transition-all duration-(--transition-fast)',
-                  isActive(href)
-                    ? 'mobile-nav-link-active bg-secondary text-foreground font-semibold'
-                    : 'mobile-nav-link-inactive text-foreground-muted hover:bg-secondary/70 hover:text-foreground font-medium'
-                )}
-                aria-current={isActive(href) ? 'page' : undefined}
-              >
-                {label}
-              </a>
-            ))}
+            {mainItems.map((item) =>
+              hasChildren(item) ? (
+                <div class="mobile-unified-mega-menu-group">
+                  <button
+                    type="button"
+                    data-mobile-unified-mega-menu-trigger={item.key || item.label}
+                    aria-expanded="false"
+                    class="mobile-nav-link flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium text-foreground-muted hover:bg-secondary/70 hover:text-foreground"
+                  >
+                    <span>{item.label}</span>
+                    <Icon name="chevron-down" size="xs" class="mobile-unified-mega-menu-chevron" />
+                  </button>
+                  <div
+                    data-mobile-unified-mega-menu-content={item.key || item.label}
+                    class="overflow-hidden border-l border-border/60 pl-3 max-h-0"
+                  >
+                    {(item.children || []).map((child) => (
+                      <a
+                        href={normalizeHref(child.href)}
+                        target={child.target}
+                        rel={child.target === '_blank' ? 'noopener noreferrer' : undefined}
+                        class="my-1 block rounded-md px-2 py-2 text-sm text-foreground-muted hover:bg-secondary/70 hover:text-foreground"
+                      >
+                        <span class="inline-flex items-center gap-1.5">
+                          <span>{child.label}</span>
+                          {child.badge && (
+                            <span class="rounded-full border border-border/70 bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-foreground/75">
+                              {child.badge}
+                            </span>
+                          )}
+                        </span>
+                        {child.description && <p class="mt-0.5 text-xs text-foreground-muted">{child.description}</p>}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <a
+                  href={normalizeHref(item.href)}
+                  target={item.target}
+                  rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
+                  class={cn(
+                    'mobile-nav-link block rounded-md px-3 py-2 text-sm',
+                    'transition-all duration-(--transition-fast)',
+                    isActive(item.href)
+                      ? 'mobile-nav-link-active bg-secondary text-foreground font-semibold'
+                      : 'mobile-nav-link-inactive text-foreground-muted hover:bg-secondary/70 hover:text-foreground font-medium'
+                  )}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                >
+                  {item.label}
+                </a>
+              )
+            )}
+
+            {moreItems.length > 0 && (
+              <div class="border-border mt-2 border-t pt-2">
+                <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-foreground-muted">More</p>
+                {moreItems.map((item) => (
+                  <div class="mobile-unified-mega-menu-group">
+                    <a
+                      href={normalizeHref(item.href)}
+                      target={item.target}
+                      rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
+                      class="mobile-nav-link block rounded-md px-3 py-2 text-sm font-medium text-foreground-muted hover:bg-secondary/70 hover:text-foreground"
+                    >
+                      {item.label}
+                    </a>
+                    {hasChildren(item) && (
+                      <div class="ml-3 border-l border-border/60 pl-3">
+                        {(item.children || []).map((child) => (
+                          <a
+                            href={normalizeHref(child.href)}
+                            target={child.target}
+                            rel={child.target === '_blank' ? 'noopener noreferrer' : undefined}
+                            class="my-1 block rounded-md px-2 py-1.5 text-xs text-foreground-muted hover:bg-secondary/70 hover:text-foreground"
+                          >
+                            {child.label}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {showCta && (
               <div class="border-border mt-3 border-t pt-3">
@@ -434,7 +657,12 @@ const buttonId = `${menuId}-button`;
                     {secondaryCta.trailingIcon && <Icon name={secondaryCta.trailingIcon} size="sm" />}
                   </Button>
                 )}
-                <Button fullWidth href={ctaHref} target={ctaHref?.startsWith('http') ? '_blank' : undefined}>
+                <Button
+                  fullWidth
+                  variant={cta.buttonVariant || 'primary'}
+                  href={ctaHref}
+                  target={cta.target || (ctaHref?.startsWith('http') ? '_blank' : undefined)}
+                >
                   {cta.icon && <Icon name={cta.icon} size="sm" />}
                   {cta.label}
                   {cta.trailingIcon && <Icon name={cta.trailingIcon} size="sm" />}
@@ -610,6 +838,82 @@ const buttonId = `${menuId}-button`;
 </script>
 
 <script>
+  function initUnifiedMegaMenus() {
+    const desktopTriggers = Array.from(document.querySelectorAll<HTMLElement>('[data-unified-mega-menu-trigger]'));
+    desktopTriggers.forEach((trigger) => {
+      if (trigger.dataset.megaInit) return;
+      trigger.dataset.megaInit = 'true';
+      const id = trigger.dataset.unifiedMegaMenuTrigger!;
+      const content = document.querySelector<HTMLElement>(`[data-unified-mega-menu-content="${id}"]`);
+      const group = trigger.closest('.group');
+      if (!content || !group) return;
+
+      let closeTimer: number | undefined;
+      const openMenu = () => {
+        window.clearTimeout(closeTimer);
+        desktopTriggers.forEach((other) => {
+          if (other === trigger) return;
+          other.setAttribute('aria-expanded', 'false');
+        });
+        trigger.setAttribute('aria-expanded', 'true');
+        group.classList.add('menu-open');
+      };
+      const closeMenu = () => {
+        closeTimer = window.setTimeout(() => {
+          trigger.setAttribute('aria-expanded', 'false');
+          group.classList.remove('menu-open');
+        }, 120);
+      };
+
+      group.addEventListener('mouseenter', openMenu);
+      group.addEventListener('mouseleave', closeMenu);
+      trigger.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          closeMenu();
+          trigger.focus();
+        }
+      });
+    });
+
+    const mobileTriggers = Array.from(document.querySelectorAll<HTMLElement>('[data-mobile-unified-mega-menu-trigger]'));
+    mobileTriggers.forEach((trigger) => {
+      if (trigger.dataset.megaInit) return;
+      trigger.dataset.megaInit = 'true';
+      const id = trigger.dataset.mobileUnifiedMegaMenuTrigger!;
+      const content = document.querySelector<HTMLElement>(`[data-mobile-unified-mega-menu-content="${id}"]`);
+      if (!content) return;
+
+      trigger.addEventListener('click', (event) => {
+        event.preventDefault();
+        const isOpen = trigger.getAttribute('aria-expanded') === 'true';
+        mobileTriggers.forEach((other) => {
+          if (other === trigger) return;
+          const otherId = other.dataset.mobileUnifiedMegaMenuTrigger!;
+          const otherContent = document.querySelector<HTMLElement>(`[data-mobile-unified-mega-menu-content="${otherId}"]`);
+          other.setAttribute('aria-expanded', 'false');
+          if (otherContent) otherContent.style.maxHeight = '0px';
+          other.querySelector('.mobile-unified-mega-menu-chevron')?.classList.remove('rotate-180');
+        });
+
+        if (isOpen) {
+          trigger.setAttribute('aria-expanded', 'false');
+          content.style.maxHeight = '0px';
+          trigger.querySelector('.mobile-unified-mega-menu-chevron')?.classList.remove('rotate-180');
+        } else {
+          trigger.setAttribute('aria-expanded', 'true');
+          content.style.maxHeight = `${content.scrollHeight}px`;
+          trigger.querySelector('.mobile-unified-mega-menu-chevron')?.classList.add('rotate-180');
+        }
+      });
+    });
+  }
+
+  initUnifiedMegaMenus();
+  document.addEventListener('astro:page-load', initUnifiedMegaMenus);
+  document.addEventListener('astro:after-swap', initUnifiedMegaMenus);
+</script>
+
+<script>
   // Header scroll behaviour + scroll-progress bar driven by a single rAF.
   // All layout reads are taken before any DOM writes. `docMaxScrollY` is
   // cached and refreshed only on resize + load — we deliberately avoid
@@ -769,6 +1073,23 @@ const buttonId = `${menuId}-button`;
 </script>
 
 <style is:global>
+  .group.menu-open [data-unified-mega-menu-content] {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  [data-mobile-unified-mega-menu-content] {
+    transition: max-height 0.24s ease-in-out;
+  }
+
+  .mobile-unified-mega-menu-chevron {
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .mobile-unified-mega-menu-chevron.rotate-180 {
+    transform: rotate(180deg);
+  }
+
   .mobile-menu-blur {
     opacity: 0.3;
     filter: blur(4px);

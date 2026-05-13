@@ -6,20 +6,21 @@ import Badge from '@/components/ui/data-display/Badge/Badge.astro';
 import Card from '@/components/ui/data-display/Card/Card.astro';
 import Icon from '@/components/ui/primitives/Icon/Icon.astro';
 import BlogCard from '@/components/blog/BlogCard.astro';
+import ProjectCard from '@/components/projects/ProjectCard.astro';
 import LighthouseScores from '@/components/landing/LighthouseScores.astro';
 import LetterGlitchBand from '@/components/patterns/LetterGlitchBand.astro';
-import { getCollection } from 'astro:content';
+import { getUnifiedBlogPosts } from '@/lib/blog-unified';
+import { getUnifiedProjects } from '@/lib/project-unified';
 import siteConfig from '@/config/site.config';
 
-const projectItems = await getCollection('projects');
-const featuredProjects = projectItems
-  .sort((a, b) => a.data.order - b.data.order)
-  .slice(0, 4);
+const projectItems = await getUnifiedProjects();
+const featuredProjects = projectItems.filter((project) => project.featured).slice(0, 4);
+const projectsForHome = featuredProjects.length > 0 ? featuredProjects : projectItems.slice(0, 4);
 
-const posts = (await getCollection('blog', ({ data }) => !data.draft))
+const posts = (await getUnifiedBlogPosts('en'))
   .sort((a, b) => {
-    if (a.data.featured !== b.data.featured) return a.data.featured ? -1 : 1;
-    return b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf();
+    if (a.featured !== b.featured) return a.featured ? -1 : 1;
+    return b.publishedAt.valueOf() - a.publishedAt.valueOf();
   })
   .slice(0, 3);
 ---
@@ -137,29 +138,17 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft))
       </div>
 
       <div class="grid gap-6 md:grid-cols-2">
-        {featuredProjects.map((project) => (
-          <Card variant="elevated" hover padding="lg" href={`/projects/${project.id.replace(/\.mdx?$/, '')}`} class="group flex flex-col" data-reveal>
-            <div class="flex flex-1 flex-col">
-              <div class="mb-3 flex items-start justify-between gap-4">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-500/5 flex items-center justify-center text-brand-500 shrink-0">
-                  <Icon name="layers" size="sm" />
-                </div>
-                <Icon name="arrow-up-right" size="sm" class="text-foreground-muted group-hover:text-brand-500 transition-colors shrink-0" />
-              </div>
-              <div class="mb-2 flex items-baseline gap-2">
-                <h3 class="font-display text-lg font-bold text-foreground">{project.data.title}</h3>
-                {project.data.year && (
-                  <span class="text-xs text-foreground-muted">{project.data.year}</span>
-                )}
-              </div>
-              <p class="text-sm text-foreground-muted leading-relaxed mb-4 flex-1">{project.data.description}</p>
-              <div class="flex flex-wrap gap-1.5">
-                {project.data.tags.map((tag) => (
-                  <Badge variant="brand">{tag}</Badge>
-                ))}
-              </div>
-            </div>
-          </Card>
+        {projectsForHome.map((project) => (
+          <ProjectCard
+            title={project.title}
+            description={project.description}
+            href={project.href}
+            tags={project.tags}
+            year={project.year}
+            image={project.image}
+            imageUrl={project.imageUrl}
+            imageAlt={project.imageAlt}
+          />
         ))}
       </div>
 
@@ -308,14 +297,14 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft))
       <div class="grid gap-6 md:grid-cols-3">
         {posts.map((post) => (
           <BlogCard
-            title={post.data.title}
-            description={post.data.description}
-            href={`/blog/${post.id.replace('en/', '')}`}
-            publishedAt={post.data.publishedAt}
-            tags={post.data.tags}
-            author={post.data.author}
-            image={post.data.image}
-            svgSlug={post.data.svgSlug}
+            title={post.title}
+            description={post.description}
+            href={post.href}
+            publishedAt={post.publishedAt}
+            tags={post.tags}
+            author={post.author}
+            imageUrl={post.imageUrl}
+            svgSlug={post.svgSlug}
           />
         ))}
       </div>

@@ -1,0 +1,46 @@
+---
+import PageLayout from "@/layouts/PageLayout.astro";
+import Badge from "@/components/ui/data-display/Badge/Badge.astro";
+import Icon from "@/components/ui/primitives/Icon/Icon.astro";
+import { Hero } from "@/components/hero";
+import OfferCard from "@/components/commerce/OfferCard.astro";
+import { getUnifiedProducts } from "@/lib/product-unified";
+
+const products = await getUnifiedProducts();
+---
+
+<PageLayout title="Products" description="Browse our products." showScrollProgress eagerReveal>
+  <Hero layout="centered" size="sm">
+    <Badge slot="badge" variant="brand" pill>
+      <Icon name="package" size="sm" />
+      Product catalog
+    </Badge>
+    <h1 slot="title">Products</h1>
+    <p slot="description">Solutions and ready-to-use offerings.</p>
+  </Hero>
+
+  <section class="bg-background py-[var(--space-section-md)] border-t border-border">
+    <div class="mx-auto max-w-6xl px-6">
+      {products.length > 0 ? (
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {products.map((product) => (
+            <OfferCard
+              title={product.title}
+              description={product.description}
+              href={product.href}
+              imageUrl={product.imageUrl}
+              imageAlt={product.imageAlt}
+              tags={product.tags}
+              metaLeft={product.priceLabel}
+              metaRight={product.availability}
+            />
+          ))}
+        </div>
+      ) : (
+        <div class="py-16 text-center">
+          <p class="text-foreground-muted text-lg">No products found.</p>
+        </div>
+      )}
+    </div>
+  </section>
+</PageLayout>

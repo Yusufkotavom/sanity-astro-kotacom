@@ -1,0 +1,46 @@
+---
+import PageLayout from "@/layouts/PageLayout.astro";
+import Badge from "@/components/ui/data-display/Badge/Badge.astro";
+import Icon from "@/components/ui/primitives/Icon/Icon.astro";
+import { Hero } from "@/components/hero";
+import OfferCard from "@/components/commerce/OfferCard.astro";
+import { getUnifiedServices } from "@/lib/service-unified";
+
+const services = await getUnifiedServices();
+---
+
+<PageLayout title="Services" description="Explore our services." showScrollProgress eagerReveal>
+  <Hero layout="centered" size="sm">
+    <Badge slot="badge" variant="brand" pill>
+      <Icon name="briefcase" size="sm" />
+      Service lineup
+    </Badge>
+    <h1 slot="title">Services</h1>
+    <p slot="description">Core services for growth, delivery, and support.</p>
+  </Hero>
+
+  <section class="bg-background py-[var(--space-section-md)] border-t border-border">
+    <div class="mx-auto max-w-6xl px-6">
+      {services.length > 0 ? (
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {services.map((service) => (
+            <OfferCard
+              title={service.title}
+              description={service.description}
+              href={service.href}
+              imageUrl={service.imageUrl}
+              imageAlt={service.imageAlt}
+              tags={service.tags}
+              metaLeft={service.priceLabel}
+              metaRight={service.duration}
+            />
+          ))}
+        </div>
+      ) : (
+        <div class="py-16 text-center">
+          <p class="text-foreground-muted text-lg">No services found.</p>
+        </div>
+      )}
+    </div>
+  </section>
+</PageLayout>
