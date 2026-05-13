@@ -52,6 +52,8 @@ interface PostItem {
   excerpt?: string;
   publishedAt?: string;
   tags?: string[];
+  authorName?: string;
+  imageUrl?: string;
 }
 
 interface Props {
@@ -328,6 +330,8 @@ const whatsappHref = (() => {
               href={post.slug ? `/blog/${post.slug}` : "#"}
               publishedAt={post.publishedAt ? new Date(post.publishedAt) : new Date()}
               tags={post.tags || []}
+              author={post.authorName || "Team"}
+              imageUrl={post.imageUrl}
             />
           ))}
         </div>

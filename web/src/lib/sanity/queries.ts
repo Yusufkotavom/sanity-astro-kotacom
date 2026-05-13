@@ -90,12 +90,17 @@ export const REDIRECT_BY_SOURCE_QUERY = `*[_type == "redirect" && isEnabled == t
   permanent
 }`;
 
-export const POSTS_QUERY = `*[_type == "post"]|order(publishedAt desc){
+export const POSTS_QUERY = `*[_type == "post"]|order(coalesce(meta.publishedAt, _createdAt) desc){
   _id,
   title,
   "slug": slug.current,
-  publishedAt,
+  "publishedAt": coalesce(meta.publishedAt, _createdAt),
   excerpt,
+  "authorName": author->name,
+  "imageUrl": coalesce(meta.image.asset->url, image.asset->url),
+  "tags": array::unique(array::compact(
+    coalesce(categories[]->slug.current, []) + [meta.focusKeyword] + coalesce(meta.secondaryKeywords, [])
+  )),
   meta
 }`;
 

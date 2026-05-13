@@ -31,6 +31,10 @@ const SANITY_PROJECTS_LIST_QUERY = `*[_type == "project"]|order(_updatedAt desc)
   completionYear,
   projectType,
   industry,
+  featured,
+  clientName,
+  "categorySlugs": categories[]->slug.current,
+  "categoryTitles": categories[]->title,
   meta
 }`;
 
@@ -67,6 +71,9 @@ export async function getUnifiedProjects(): Promise<UnifiedProject[]> {
         [
           project?.projectType,
           project?.industry,
+          project?.clientName,
+          ...(Array.isArray(project?.categoryTitles) ? project.categoryTitles : []),
+          ...(Array.isArray(project?.categorySlugs) ? project.categorySlugs : []),
           ...(Array.isArray(project?.meta?.secondaryKeywords) ? project.meta.secondaryKeywords : []),
         ].filter(Boolean),
       );
@@ -79,9 +86,10 @@ export async function getUnifiedProjects(): Promise<UnifiedProject[]> {
         description: project?.meta?.description || project?.excerpt || "",
         href: `/projects/sanity/${project.slug}`,
         tags,
-        featured: false,
+        featured: Boolean(project?.featured),
         order: 999,
         year: Number(project?.completionYear) || undefined,
+        client: project?.clientName || undefined,
         imageUrl: project?.imageUrl || undefined,
         imageAlt: project?.imageAlt || undefined,
       } as UnifiedProject;

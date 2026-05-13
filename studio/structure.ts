@@ -73,13 +73,6 @@ export const structure = (S: any, context: any) =>
         context,
       }),
       orderableDocumentListDeskItem({
-        type: "serviceType",
-        title: "Service Types",
-        icon: BriefcaseBusiness,
-        S,
-        context,
-      }),
-      orderableDocumentListDeskItem({
         type: "project",
         title: "Projects",
         icon: FolderKanban,
@@ -132,7 +125,6 @@ export const structure = (S: any, context: any) =>
               createBulkTableItem(S, context, { type: "post", title: "Posts Table", icon: BookA }),
               createBulkTableItem(S, context, { type: "product", title: "Products Table", icon: Package }),
               createBulkTableItem(S, context, { type: "service", title: "Services Table", icon: BriefcaseBusiness }),
-              createBulkTableItem(S, context, { type: "serviceType", title: "Service Types Table", icon: BriefcaseBusiness }),
               createBulkTableItem(S, context, { type: "project", title: "Projects Table", icon: FolderKanban }),
               createBulkTableItem(S, context, { type: "faq", title: "FAQs Table", icon: ListCollapse }),
               createBulkTableItem(S, context, { type: "testimonial", title: "Testimonials Table", icon: Quote }),

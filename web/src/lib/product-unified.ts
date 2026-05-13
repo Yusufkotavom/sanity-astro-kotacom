@@ -20,9 +20,12 @@ const PRODUCTS_QUERY = `*[_type == "product"]|order(_updatedAt desc){
   price,
   currency,
   availability,
+  featured,
   "slug": slug.current,
   "imageUrl": image.asset->url,
   "imageAlt": image.alt,
+  "categorySlugs": categories[]->slug.current,
+  "categoryTitles": categories[]->title,
   meta
 }`;
 
@@ -42,6 +45,11 @@ export async function getUnifiedProducts(): Promise<UnifiedProduct[]> {
       imageAlt: product?.imageAlt || undefined,
       priceLabel: product?.price ? `${product?.currency || "IDR"} ${product.price}` : undefined,
       availability: product?.availability || undefined,
-      tags: unique([product?.availability, ...(Array.isArray(product?.meta?.secondaryKeywords) ? product.meta.secondaryKeywords : [])]),
+      tags: unique([
+        ...(Array.isArray(product?.categoryTitles) ? product.categoryTitles : []),
+        ...(Array.isArray(product?.categorySlugs) ? product.categorySlugs : []),
+        product?.availability,
+        ...(Array.isArray(product?.meta?.secondaryKeywords) ? product.meta.secondaryKeywords : []),
+      ]),
     }));
 }

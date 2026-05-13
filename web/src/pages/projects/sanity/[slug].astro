@@ -1,10 +1,11 @@
 ---
 import PageLayout from "@/layouts/PageLayout.astro";
 import SanityBlockRenderer from "@/components/sanity/SanityBlockRenderer.astro";
+import PortableBody from "@/components/sanity/PortableBody.astro";
 import Card from "@/components/ui/data-display/Card/Card.astro";
 import { getSanityClient } from "@/lib/sanity/client";
 import { isDraftModeEnabled } from "@/lib/sanity/preview";
-import { SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from "@/lib/sanity/queries";
+import { POSTS_QUERY, SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from "@/lib/sanity/queries";
 
 export const prerender = false;
 const { slug } = Astro.params;
@@ -14,6 +15,21 @@ const PROJECT_BY_SLUG_QUERY = `*[_type == "project" && slug.current == $slug][0]
   _id,
   title,
   excerpt,
+  body[]{
+    ...,
+    markDefs[]{
+      ...,
+      internalLink->{
+        _type,
+        "slug": slug.current
+      }
+    },
+    _type == "image" => {
+      ...,
+      "url": asset->url,
+      alt
+    }
+  },
   clientName,
   industry,
   completionYear,
@@ -21,7 +37,18 @@ const PROJECT_BY_SLUG_QUERY = `*[_type == "project" && slug.current == $slug][0]
   repositoryUrl,
   previewUrl,
   projectUrl,
-  cta,
+  featured,
+  categories[]->{
+    title,
+    "slug": slug.current
+  },
+  cta{
+    ...,
+    internalLink->{
+      _type,
+      "slug": slug.current
+    }
+  },
   "imageUrl": image.asset->url,
   "imageAlt": image.alt,
   blocks[]{
@@ -38,10 +65,25 @@ const PROJECT_BY_SLUG_QUERY = `*[_type == "project" && slug.current == $slug][0]
 }`;
 
 const project = await sanityClient.fetch(PROJECT_BY_SLUG_QUERY, { slug });
-const [siteSettings, seoSettings] = await Promise.all([
+const [posts, siteSettings, seoSettings] = await Promise.all([
+  sanityClient.fetch(POSTS_QUERY).catch(() => []),
   sanityClient.fetch(SITE_SETTINGS_QUERY),
   sanityClient.fetch(SEO_SETTINGS_QUERY),
 ]);
+
+const resolveLinkHref = (link: any): string => {
+  if (!link) return "#";
+  if (link?.isExternal && link?.href) return link.href;
+  const slugValue = link?.internalLink?.slug;
+  const type = link?.internalLink?._type;
+  if (!slugValue || !type) return link?.href || "#";
+  if (type === "page") return `/s/${slugValue}`;
+  if (type === "post") return `/blog/${slugValue}`;
+  if (type === "service") return `/services/${slugValue}`;
+  if (type === "product") return `/products/${slugValue}`;
+  if (type === "project") return `/projects/sanity/${slugValue}`;
+  return link?.href || "#";
+};
 
 if (!project) {
   return Astro.redirect("/404");
@@ -64,7 +106,31 @@ if (!project) {
       <Card><p class="text-sm"><strong>Industry:</strong> {project.industry || "-"}</p></Card>
       <Card><p class="text-sm"><strong>Year:</strong> {project.completionYear || "-"}</p></Card>
     </div>
+    <div class="mt-4 grid gap-4 md:grid-cols-3">
+      <Card><p class="text-sm"><strong>Type:</strong> {project.projectType || "-"}</p></Card>
+      <Card><p class="text-sm"><strong>Preview:</strong> {project.previewUrl ? <a class="text-brand-600" href={project.previewUrl} target="_blank" rel="noopener noreferrer">Open</a> : "-"}</p></Card>
+      <Card><p class="text-sm"><strong>Repository:</strong> {project.repositoryUrl ? <a class="text-brand-600" href={project.repositoryUrl} target="_blank" rel="noopener noreferrer">Open</a> : "-"}</p></Card>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-2">
+      {project?.featured && <span class="rounded-full border border-brand-500/30 px-3 py-1 text-xs font-semibold text-brand-600 dark:text-brand-300">Featured</span>}
+      {(Array.isArray(project?.categories) ? project.categories : []).map((category: any) => (
+        <span class="rounded-full border border-border px-3 py-1 text-xs text-foreground-muted">{category?.title || category?.slug || "-"}</span>
+      ))}
+      {project?.projectUrl && (
+        <a class="rounded-full border border-brand-500/30 px-3 py-1 text-xs font-semibold text-brand-600 dark:text-brand-300" href={project.projectUrl} target="_blank" rel="noopener noreferrer">
+          Project URL
+        </a>
+      )}
+      {project?.cta?.title && (
+        <a class="rounded-full border border-brand-500/30 px-3 py-1 text-xs font-semibold text-brand-600 dark:text-brand-300" href={resolveLinkHref(project?.cta)}>
+          {project.cta.title}
+        </a>
+      )}
+    </div>
+    <div class="mt-8">
+      <PortableBody body={project?.body || []} />
+    </div>
   </section>
 
-  <SanityBlockRenderer blocks={project.blocks || []} posts={[]} seoSettings={seoSettings || {}} siteSettings={siteSettings || {}} />
+  <SanityBlockRenderer blocks={project.blocks || []} posts={posts || []} seoSettings={seoSettings || {}} siteSettings={siteSettings || {}} />
 </PageLayout>

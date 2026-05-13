@@ -20,9 +20,12 @@ const SERVICES_QUERY = `*[_type == "service"]|order(_updatedAt desc){
   duration,
   startingPrice,
   currency,
+  featured,
   "slug": slug.current,
   "imageUrl": image.asset->url,
   "imageAlt": image.alt,
+  "categorySlugs": categories[]->slug.current,
+  "categoryTitles": categories[]->title,
   meta
 }`;
 
@@ -42,6 +45,11 @@ export async function getUnifiedServices(): Promise<UnifiedService[]> {
       imageAlt: service?.imageAlt || undefined,
       priceLabel: service?.startingPrice ? `${service?.currency || "IDR"} ${service.startingPrice}` : undefined,
       duration: service?.duration || undefined,
-      tags: unique([service?.duration, ...(Array.isArray(service?.meta?.secondaryKeywords) ? service.meta.secondaryKeywords : [])]),
+      tags: unique([
+        ...(Array.isArray(service?.categoryTitles) ? service.categoryTitles : []),
+        ...(Array.isArray(service?.categorySlugs) ? service.categorySlugs : []),
+        service?.duration,
+        ...(Array.isArray(service?.meta?.secondaryKeywords) ? service.meta.secondaryKeywords : []),
+      ]),
     }));
 }

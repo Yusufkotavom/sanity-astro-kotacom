@@ -1,0 +1,189 @@
+---
+import type { MarkdownHeading } from "astro";
+
+interface PortableLinkMark {
+  _key?: string;
+  _type?: string;
+  href?: string;
+  target?: boolean;
+  isExternal?: boolean;
+  internalLink?: { _type?: string; slug?: string };
+}
+
+interface Props {
+  body?: any[];
+  headings?: MarkdownHeading[];
+}
+
+const { body = [], headings = [] } = Astro.props;
+
+const slugifyHeading = (value: string): string =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
+let renderedHeadingIndex = 0;
+
+const buildHrefFromMark = (mark?: PortableLinkMark): string | null => {
+  if (!mark) return null;
+  if (mark.isExternal && mark.href) return mark.href;
+  const slugValue = mark.internalLink?.slug;
+  const type = mark.internalLink?._type;
+  if (!slugValue || !type) return null;
+  if (type === "page") return `/s/${slugValue}`;
+  if (type === "post") return `/blog/${slugValue}`;
+  if (type === "service") return `/services/${slugValue}`;
+  if (type === "product") return `/products/${slugValue}`;
+  if (type === "project") return `/projects/sanity/${slugValue}`;
+  return null;
+};
+
+const getMarkDefsMap = (node: any): Map<string, PortableLinkMark> => {
+  const map = new Map<string, PortableLinkMark>();
+  const defs = Array.isArray(node?.markDefs) ? node.markDefs : [];
+  for (const def of defs) {
+    if (def?._key) map.set(def._key, def);
+  }
+  return map;
+};
+
+const groupedBodyNodes = (() => {
+  if (!Array.isArray(body)) return [];
+  const out: any[] = [];
+  let currentList: { listType: "bullet" | "number"; items: any[] } | null = null;
+  for (const node of body) {
+    const listType = node?.listItem === "number" ? "number" : node?.listItem ? "bullet" : null;
+    if (listType) {
+      if (!currentList || currentList.listType !== listType) {
+        if (currentList) out.push({ _kind: "list", ...currentList });
+        currentList = { listType, items: [] };
+      }
+      currentList.items.push(node);
+      continue;
+    }
+    if (currentList) {
+      out.push({ _kind: "list", ...currentList });
+      currentList = null;
+    }
+    out.push(node);
+  }
+  if (currentList) out.push({ _kind: "list", ...currentList });
+  return out;
+})();
+---
+
+{
+  groupedBodyNodes.length > 0 && (
+    <article class="prose prose-lg max-w-none dark:prose-invert">
+      {groupedBodyNodes.map((node: any) => {
+        if (node?._kind === "list" && Array.isArray(node.items)) {
+          const Tag = node.listType === "number" ? "ol" : "ul";
+          return (
+            <Tag>
+              {node.items.map((item: any) => {
+                const markDefsMap = getMarkDefsMap(item);
+                return (
+                  <li>
+                    {(Array.isArray(item.children) ? item.children : []).map((child: any) => {
+                      const marks: string[] = Array.isArray(child?.marks) ? child.marks : [];
+                      const text = child?.text || "";
+                      const linkMarkKey = marks.find((m) => markDefsMap.has(m));
+                      const mark = linkMarkKey ? markDefsMap.get(linkMarkKey) : undefined;
+                      const href = buildHrefFromMark(mark);
+                      const content = marks.includes("strong")
+                        ? marks.includes("em")
+                          ? <strong><em>{text}</em></strong>
+                          : <strong>{text}</strong>
+                        : marks.includes("em")
+                          ? <em>{text}</em>
+                          : text;
+                      if (href) {
+                        return (
+                          <a href={href} target={mark?.target ? "_blank" : undefined} rel={mark?.target ? "noopener noreferrer" : undefined}>
+                            {content}
+                          </a>
+                        );
+                      }
+                      return content;
+                    })}
+                  </li>
+                );
+              })}
+            </Tag>
+          );
+        }
+
+        if (node?._type === "block") {
+          const markDefsMap = getMarkDefsMap(node);
+          const text = Array.isArray(node.children) ? node.children.map((c: any) => c?.text || "").join("") : "";
+          if (!text.trim()) return null;
+          const style = node.style || "normal";
+          if (style === "h1") return <h1>{text}</h1>;
+          if (style === "h2" || style === "h3" || style === "h4") {
+            const id = headings[renderedHeadingIndex]?.slug || slugifyHeading(text);
+            renderedHeadingIndex += 1;
+            if (style === "h2") return <h2 id={id}>{text}</h2>;
+            if (style === "h3") return <h3 id={id}>{text}</h3>;
+            return <h4 id={id}>{text}</h4>;
+          }
+          if (style === "blockquote") return <blockquote>{text}</blockquote>;
+          return (
+            <p>
+              {(Array.isArray(node.children) ? node.children : []).map((child: any) => {
+                const marks: string[] = Array.isArray(child?.marks) ? child.marks : [];
+                const raw = child?.text || "";
+                const linkMarkKey = marks.find((m) => markDefsMap.has(m));
+                const mark = linkMarkKey ? markDefsMap.get(linkMarkKey) : undefined;
+                const href = buildHrefFromMark(mark);
+                const content = marks.includes("strong")
+                  ? marks.includes("em")
+                    ? <strong><em>{raw}</em></strong>
+                    : <strong>{raw}</strong>
+                  : marks.includes("em")
+                    ? <em>{raw}</em>
+                    : raw;
+                if (href) {
+                  return (
+                    <a href={href} target={mark?.target ? "_blank" : undefined} rel={mark?.target ? "noopener noreferrer" : undefined}>
+                      {content}
+                    </a>
+                  );
+                }
+                return content;
+              })}
+            </p>
+          );
+        }
+
+        if (node?._type === "image" && node?.url) {
+          return <img src={node.url} alt={node.alt || ""} loading="lazy" class="rounded-xl" />;
+        }
+        if (node?._type === "code" && typeof node?.code === "string") {
+          return (
+            <pre>
+              <code>{node.code}</code>
+            </pre>
+          );
+        }
+        if (node?._type === "youtube" && node?.videoId) {
+          return (
+            <div class="aspect-video w-full overflow-hidden rounded-xl">
+              <iframe
+                src={`https://www.youtube.com/embed/${node.videoId}`}
+                title="YouTube video"
+                loading="lazy"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                class="h-full w-full"
+              />
+            </div>
+          );
+        }
+        return null;
+      })}
+    </article>
+  )
+}

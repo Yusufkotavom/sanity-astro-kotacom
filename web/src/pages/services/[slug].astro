@@ -1,10 +1,11 @@
 ---
 import PageLayout from "@/layouts/PageLayout.astro";
 import SanityBlockRenderer from "@/components/sanity/SanityBlockRenderer.astro";
+import PortableBody from "@/components/sanity/PortableBody.astro";
 import Card from "@/components/ui/data-display/Card/Card.astro";
 import { getSanityClient } from "@/lib/sanity/client";
 import { isDraftModeEnabled } from "@/lib/sanity/preview";
-import { SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from "@/lib/sanity/queries";
+import { POSTS_QUERY, SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from "@/lib/sanity/queries";
 
 export const prerender = false;
 const { slug } = Astro.params;
@@ -14,12 +15,54 @@ const SERVICE_BY_SLUG_QUERY = `*[_type == "service" && slug.current == $slug][0]
   _id,
   title,
   excerpt,
-  body,
+  body[]{
+    ...,
+    markDefs[]{
+      ...,
+      internalLink->{
+        _type,
+        "slug": slug.current
+      }
+    },
+    _type == "image" => {
+      ...,
+      "url": asset->url,
+      alt
+    }
+  },
   deliverables,
   duration,
   startingPrice,
   currency,
-  cta,
+  featured,
+  categories[]->{
+    title,
+    "slug": slug.current
+  },
+  cta{
+    ...,
+    internalLink->{
+      _type,
+      "slug": slug.current
+    }
+  },
+  reviews[]{
+    reviewerName,
+    reviewerRole,
+    rating,
+    reviewBody,
+    datePublished,
+    source,
+    sourceUrl,
+    verified
+  },
+  aggregateRating{
+    ratingValue,
+    reviewCount,
+    bestRating,
+    ratingSource,
+    sourceUrl
+  },
   "imageUrl": image.asset->url,
   "imageAlt": image.alt,
   blocks[]{
@@ -36,10 +79,25 @@ const SERVICE_BY_SLUG_QUERY = `*[_type == "service" && slug.current == $slug][0]
 }`;
 
 const service = await sanityClient.fetch(SERVICE_BY_SLUG_QUERY, { slug });
-const [siteSettings, seoSettings] = await Promise.all([
+const [posts, siteSettings, seoSettings] = await Promise.all([
+  sanityClient.fetch(POSTS_QUERY).catch(() => []),
   sanityClient.fetch(SITE_SETTINGS_QUERY),
   sanityClient.fetch(SEO_SETTINGS_QUERY),
 ]);
+
+const resolveLinkHref = (link: any): string => {
+  if (!link) return "#";
+  if (link?.isExternal && link?.href) return link.href;
+  const slugValue = link?.internalLink?.slug;
+  const type = link?.internalLink?._type;
+  if (!slugValue || !type) return link?.href || "#";
+  if (type === "page") return `/s/${slugValue}`;
+  if (type === "post") return `/blog/${slugValue}`;
+  if (type === "service") return `/services/${slugValue}`;
+  if (type === "product") return `/products/${slugValue}`;
+  if (type === "project") return `/projects/sanity/${slugValue}`;
+  return link?.href || "#";
+};
 
 if (!service) {
   return Astro.redirect("/404");
@@ -61,15 +119,43 @@ if (!service) {
       <Card><p class="text-sm"><strong>Duration:</strong> {service.duration || "-"}</p></Card>
       <Card><p class="text-sm"><strong>Starting Price:</strong> {service.startingPrice ? `${service.currency || "IDR"} ${service.startingPrice}` : "-"}</p></Card>
       <Card>
-        <a class="text-sm font-medium text-brand-600" href={service?.cta?.href || "#"}>{service?.cta?.title || "Contact"}</a>
+        <a class="text-sm font-medium text-brand-600" href={resolveLinkHref(service?.cta)}>{service?.cta?.title || "Contact"}</a>
       </Card>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-2">
+      {service?.featured && <span class="rounded-full border border-brand-500/30 px-3 py-1 text-xs font-semibold text-brand-600 dark:text-brand-300">Featured</span>}
+      {(Array.isArray(service?.categories) ? service.categories : []).map((category: any) => (
+        <span class="rounded-full border border-border px-3 py-1 text-xs text-foreground-muted">{category?.title || category?.slug || "-"}</span>
+      ))}
     </div>
     {Array.isArray(service.deliverables) && service.deliverables.length > 0 && (
       <ul class="mt-5 list-disc space-y-1 pl-5 text-sm">
         {service.deliverables.map((item: string) => <li>{item}</li>)}
       </ul>
     )}
+    {service?.aggregateRating && (
+      <div class="mt-6 grid gap-4 md:grid-cols-3">
+        <Card><p class="text-sm"><strong>Rating:</strong> {service.aggregateRating.ratingValue || "-"}/{service.aggregateRating.bestRating || 5}</p></Card>
+        <Card><p class="text-sm"><strong>Reviews:</strong> {service.aggregateRating.reviewCount || "-"}</p></Card>
+        <Card><p class="text-sm"><strong>Source:</strong> {service.aggregateRating.ratingSource || "-"}</p></Card>
+      </div>
+    )}
+    {Array.isArray(service?.reviews) && service.reviews.length > 0 && (
+      <div class="mt-6 grid gap-4 md:grid-cols-2">
+        {service.reviews.map((review: any) => (
+          <Card>
+            <p class="text-sm font-semibold">{review.reviewerName || "Anonymous"}</p>
+            <p class="text-xs text-foreground-muted">{review.reviewerRole || "-"}</p>
+            <p class="mt-2 text-sm">Rating: {review.rating || "-"}/5{review.verified ? " • Verified" : ""}</p>
+            {review.reviewBody && <p class="mt-2 text-sm text-foreground-muted">{review.reviewBody}</p>}
+          </Card>
+        ))}
+      </div>
+    )}
+    <div class="mt-8">
+      <PortableBody body={service?.body || []} />
+    </div>
   </section>
 
-  <SanityBlockRenderer blocks={service.blocks || []} posts={[]} seoSettings={seoSettings || {}} siteSettings={siteSettings || {}} />
+  <SanityBlockRenderer blocks={service.blocks || []} posts={posts || []} seoSettings={seoSettings || {}} siteSettings={siteSettings || {}} />
 </PageLayout>

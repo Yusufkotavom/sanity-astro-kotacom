@@ -1,10 +1,11 @@
 ---
 import PageLayout from "@/layouts/PageLayout.astro";
 import SanityBlockRenderer from "@/components/sanity/SanityBlockRenderer.astro";
+import PortableBody from "@/components/sanity/PortableBody.astro";
 import Card from "@/components/ui/data-display/Card/Card.astro";
 import { getSanityClient } from "@/lib/sanity/client";
 import { isDraftModeEnabled } from "@/lib/sanity/preview";
-import { SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from "@/lib/sanity/queries";
+import { POSTS_QUERY, SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from "@/lib/sanity/queries";
 
 export const prerender = false;
 const { slug } = Astro.params;
@@ -14,10 +15,53 @@ const PRODUCT_BY_SLUG_QUERY = `*[_type == "product" && slug.current == $slug][0]
   _id,
   title,
   excerpt,
+  body[]{
+    ...,
+    markDefs[]{
+      ...,
+      internalLink->{
+        _type,
+        "slug": slug.current
+      }
+    },
+    _type == "image" => {
+      ...,
+      "url": asset->url,
+      alt
+    }
+  },
   price,
   currency,
   availability,
-  cta,
+  featured,
+  categories[]->{
+    title,
+    "slug": slug.current
+  },
+  cta{
+    ...,
+    internalLink->{
+      _type,
+      "slug": slug.current
+    }
+  },
+  reviews[]{
+    reviewerName,
+    reviewerRole,
+    rating,
+    reviewBody,
+    datePublished,
+    source,
+    sourceUrl,
+    verified
+  },
+  aggregateRating{
+    ratingValue,
+    reviewCount,
+    bestRating,
+    ratingSource,
+    sourceUrl
+  },
   "imageUrl": image.asset->url,
   "imageAlt": image.alt,
   "galleryUrls": gallery[].asset->url,
@@ -35,10 +79,25 @@ const PRODUCT_BY_SLUG_QUERY = `*[_type == "product" && slug.current == $slug][0]
 }`;
 
 const product = await sanityClient.fetch(PRODUCT_BY_SLUG_QUERY, { slug });
-const [siteSettings, seoSettings] = await Promise.all([
+const [posts, siteSettings, seoSettings] = await Promise.all([
+  sanityClient.fetch(POSTS_QUERY).catch(() => []),
   sanityClient.fetch(SITE_SETTINGS_QUERY),
   sanityClient.fetch(SEO_SETTINGS_QUERY),
 ]);
+
+const resolveLinkHref = (link: any): string => {
+  if (!link) return "#";
+  if (link?.isExternal && link?.href) return link.href;
+  const slugValue = link?.internalLink?.slug;
+  const type = link?.internalLink?._type;
+  if (!slugValue || !type) return link?.href || "#";
+  if (type === "page") return `/s/${slugValue}`;
+  if (type === "post") return `/blog/${slugValue}`;
+  if (type === "service") return `/services/${slugValue}`;
+  if (type === "product") return `/products/${slugValue}`;
+  if (type === "project") return `/projects/sanity/${slugValue}`;
+  return link?.href || "#";
+};
 
 if (!product) {
   return Astro.redirect("/404");
@@ -60,8 +119,14 @@ if (!product) {
       <Card><p class="text-sm"><strong>Price:</strong> {product.price ? `${product.currency || "IDR"} ${product.price}` : "-"}</p></Card>
       <Card><p class="text-sm"><strong>Availability:</strong> {product.availability || "-"}</p></Card>
       <Card>
-        <a class="text-sm font-medium text-brand-600" href={product?.cta?.href || "#"}>{product?.cta?.title || "Contact"}</a>
+        <a class="text-sm font-medium text-brand-600" href={resolveLinkHref(product?.cta)}>{product?.cta?.title || "Contact"}</a>
       </Card>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-2">
+      {product?.featured && <span class="rounded-full border border-brand-500/30 px-3 py-1 text-xs font-semibold text-brand-600 dark:text-brand-300">Featured</span>}
+      {(Array.isArray(product?.categories) ? product.categories : []).map((category: any) => (
+        <span class="rounded-full border border-border px-3 py-1 text-xs text-foreground-muted">{category?.title || category?.slug || "-"}</span>
+      ))}
     </div>
     {Array.isArray(product.galleryUrls) && product.galleryUrls.length > 0 && (
       <div class="mt-6 grid gap-3 md:grid-cols-3">
@@ -70,7 +135,29 @@ if (!product) {
         ))}
       </div>
     )}
+    {product?.aggregateRating && (
+      <div class="mt-6 grid gap-4 md:grid-cols-3">
+        <Card><p class="text-sm"><strong>Rating:</strong> {product.aggregateRating.ratingValue || "-"}/{product.aggregateRating.bestRating || 5}</p></Card>
+        <Card><p class="text-sm"><strong>Reviews:</strong> {product.aggregateRating.reviewCount || "-"}</p></Card>
+        <Card><p class="text-sm"><strong>Source:</strong> {product.aggregateRating.ratingSource || "-"}</p></Card>
+      </div>
+    )}
+    {Array.isArray(product?.reviews) && product.reviews.length > 0 && (
+      <div class="mt-6 grid gap-4 md:grid-cols-2">
+        {product.reviews.map((review: any) => (
+          <Card>
+            <p class="text-sm font-semibold">{review.reviewerName || "Anonymous"}</p>
+            <p class="text-xs text-foreground-muted">{review.reviewerRole || "-"}</p>
+            <p class="mt-2 text-sm">Rating: {review.rating || "-"}/5{review.verified ? " • Verified" : ""}</p>
+            {review.reviewBody && <p class="mt-2 text-sm text-foreground-muted">{review.reviewBody}</p>}
+          </Card>
+        ))}
+      </div>
+    )}
+    <div class="mt-8">
+      <PortableBody body={product?.body || []} />
+    </div>
   </section>
 
-  <SanityBlockRenderer blocks={product.blocks || []} posts={[]} seoSettings={seoSettings || {}} siteSettings={siteSettings || {}} />
+  <SanityBlockRenderer blocks={product.blocks || []} posts={posts || []} seoSettings={seoSettings || {}} siteSettings={siteSettings || {}} />
 </PageLayout>

@@ -5,7 +5,7 @@ import { getCollection, render } from 'astro:content';
 import type { MarkdownHeading } from 'astro';
 import { getSanityClient } from '@/lib/sanity/client';
 import { isDraftModeEnabled } from '@/lib/sanity/preview';
-import { SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from '@/lib/sanity/queries';
+import { POSTS_QUERY, SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from '@/lib/sanity/queries';
 
 export const prerender = false;
 
@@ -45,8 +45,9 @@ const POST_BY_SLUG_QUERY = `*[_type == "post" && slug.current == $slug][0]{
   }
 }`;
 
-const [sanityPost, siteSettings, seoSettings] = await Promise.all([
+const [sanityPost, posts, siteSettings, seoSettings] = await Promise.all([
   sanityClient.fetch(POST_BY_SLUG_QUERY, { slug }).catch(() => null),
+  sanityClient.fetch(POSTS_QUERY).catch(() => []),
   sanityClient.fetch(SITE_SETTINGS_QUERY).catch(() => null),
   sanityClient.fetch(SEO_SETTINGS_QUERY).catch(() => null),
 ]);
@@ -296,7 +297,7 @@ const groupedBodyNodes = (() => {
 
     <SanityBlockRenderer
       blocks={sanityPost.blocks || []}
-      posts={[]}
+      posts={posts || []}
       seoSettings={seoSettings || {}}
       siteSettings={siteSettings || {}}
     />
