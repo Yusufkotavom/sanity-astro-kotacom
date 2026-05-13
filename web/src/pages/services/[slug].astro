@@ -1,0 +1,75 @@
+---
+import PageLayout from "@/layouts/PageLayout.astro";
+import SanityBlockRenderer from "@/components/sanity/SanityBlockRenderer.astro";
+import Card from "@/components/ui/data-display/Card/Card.astro";
+import { getSanityClient } from "@/lib/sanity/client";
+import { isDraftModeEnabled } from "@/lib/sanity/preview";
+import { SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from "@/lib/sanity/queries";
+
+export const prerender = false;
+const { slug } = Astro.params;
+const sanityClient = getSanityClient({ draftMode: isDraftModeEnabled(Astro.cookies) });
+
+const SERVICE_BY_SLUG_QUERY = `*[_type == "service" && slug.current == $slug][0]{
+  _id,
+  title,
+  excerpt,
+  body,
+  deliverables,
+  duration,
+  startingPrice,
+  currency,
+  cta,
+  "imageUrl": image.asset->url,
+  "imageAlt": image.alt,
+  blocks[]{
+    ...,
+    images[]{alt, "url": asset->url},
+    testimonial[]->{_id, name, title, rating, body, "imageUrl": image.asset->url},
+    faqs[]{"question": @->question, "answer": @->answer}
+  },
+  meta{
+    ...,
+    "imageUrl": image.asset->url,
+    "imageAlt": image.alt
+  }
+}`;
+
+const service = await sanityClient.fetch(SERVICE_BY_SLUG_QUERY, { slug });
+const [siteSettings, seoSettings] = await Promise.all([
+  sanityClient.fetch(SITE_SETTINGS_QUERY),
+  sanityClient.fetch(SEO_SETTINGS_QUERY),
+]);
+
+if (!service) {
+  return Astro.redirect("/404");
+}
+---
+
+<PageLayout
+  title={service?.meta?.title || service.title || "Service"}
+  description={service?.meta?.description || service.excerpt || ""}
+  image={service?.meta?.imageUrl || service.imageUrl || undefined}
+  imageAlt={service?.meta?.imageAlt || service.imageAlt || service.title || undefined}
+  canonicalUrl={service?.meta?.canonicalUrl || undefined}
+  noindex={Boolean(service?.meta?.noindex || seoSettings?.defaultNoIndex)}
+>
+  <section class="mx-auto max-w-6xl px-4 pt-24">
+    <h1 class="text-4xl font-bold">{service.title}</h1>
+    {service.excerpt && <p class="mt-3 text-foreground-muted">{service.excerpt}</p>}
+    <div class="mt-6 grid gap-4 md:grid-cols-3">
+      <Card><p class="text-sm"><strong>Duration:</strong> {service.duration || "-"}</p></Card>
+      <Card><p class="text-sm"><strong>Starting Price:</strong> {service.startingPrice ? `${service.currency || "IDR"} ${service.startingPrice}` : "-"}</p></Card>
+      <Card>
+        <a class="text-sm font-medium text-brand-600" href={service?.cta?.href || "#"}>{service?.cta?.title || "Contact"}</a>
+      </Card>
+    </div>
+    {Array.isArray(service.deliverables) && service.deliverables.length > 0 && (
+      <ul class="mt-5 list-disc space-y-1 pl-5 text-sm">
+        {service.deliverables.map((item: string) => <li>{item}</li>)}
+      </ul>
+    )}
+  </section>
+
+  <SanityBlockRenderer blocks={service.blocks || []} posts={[]} seoSettings={seoSettings || {}} siteSettings={siteSettings || {}} />
+</PageLayout>

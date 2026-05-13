@@ -1,0 +1,322 @@
+---
+import BlogLayout from '@/layouts/BlogLayout.astro';
+import SanityBlockRenderer from '@/components/sanity/SanityBlockRenderer.astro';
+import { getCollection, render } from 'astro:content';
+import type { MarkdownHeading } from 'astro';
+import { getSanityClient } from '@/lib/sanity/client';
+import { isDraftModeEnabled } from '@/lib/sanity/preview';
+import { SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from '@/lib/sanity/queries';
+
+export const prerender = false;
+
+const rawSlug = Astro.params.slug;
+const slug = Array.isArray(rawSlug) ? rawSlug.join('/') : rawSlug || '';
+const sanityClient = getSanityClient({ draftMode: isDraftModeEnabled(Astro.cookies) });
+
+const POST_BY_SLUG_QUERY = `*[_type == "post" && slug.current == $slug][0]{
+  _id,
+  title,
+  excerpt,
+  _createdAt,
+  _updatedAt,
+  "authorName": author->name,
+  "slug": slug.current,
+  "imageUrl": image.asset->url,
+  "imageAlt": image.alt,
+  "categorySlugs": categories[]->slug.current,
+  body[]{
+    ...,
+    _type == "image" => {
+      ...,
+      "url": asset->url,
+      alt
+    }
+  },
+  blocks[]{
+    ...,
+    images[]{alt, "url": asset->url},
+    testimonial[]->{_id, name, title, rating, body, "imageUrl": image.asset->url},
+    faqs[]{"question": @->question, "answer": @->answer}
+  },
+  meta{
+    ...,
+    "imageUrl": image.asset->url,
+    "imageAlt": image.alt
+  }
+}`;
+
+const [sanityPost, siteSettings, seoSettings] = await Promise.all([
+  sanityClient.fetch(POST_BY_SLUG_QUERY, { slug }).catch(() => null),
+  sanityClient.fetch(SITE_SETTINGS_QUERY).catch(() => null),
+  sanityClient.fetch(SEO_SETTINGS_QUERY).catch(() => null),
+]);
+
+let contentPost: Awaited<ReturnType<typeof getCollection>>[number] | null = null;
+if (!sanityPost) {
+  const posts = await getCollection('blog', ({ data }) => {
+    return data.locale === 'en' && (import.meta.env.PROD ? data.draft !== true : true);
+  });
+  contentPost = posts.find((post) => post.id.replace('en/', '') === slug) || null;
+}
+
+if (!sanityPost && !contentPost) {
+  return Astro.redirect('/404');
+}
+
+const renderedContent = contentPost ? await render(contentPost) : null;
+const ContentComponent = renderedContent?.Content;
+
+const slugifyHeading = (value: string): string =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+
+const sanityHeadingMap = new Map<string, number>();
+const makeUniqueHeadingSlug = (base: string): string => {
+  const clean = base || 'section';
+  const count = sanityHeadingMap.get(clean) || 0;
+  sanityHeadingMap.set(clean, count + 1);
+  return count === 0 ? clean : `${clean}-${count + 1}`;
+};
+
+const sanityHeadings: MarkdownHeading[] = Array.isArray(sanityPost?.body)
+  ? sanityPost.body
+      .filter((node: any) => node?._type === 'block' && ['h2', 'h3', 'h4'].includes(node?.style))
+      .map((node: any) => {
+        const text = Array.isArray(node.children)
+          ? node.children.map((c: any) => c?.text || '').join('').trim()
+          : '';
+        if (!text) return null;
+        const base = slugifyHeading(text);
+        const slug = makeUniqueHeadingSlug(base);
+        const depth = Number(node.style?.slice(1));
+        return { depth, slug, text } as MarkdownHeading;
+      })
+      .filter(Boolean) as MarkdownHeading[]
+  : [];
+
+let renderedHeadingIndex = 0;
+const sanityPostTags = (() => {
+  if (!sanityPost) return [];
+  const category = Array.isArray(sanityPost?.categorySlugs) ? sanityPost.categorySlugs : [];
+  const keyword = [
+    sanityPost?.meta?.focusKeyword,
+    ...(Array.isArray(sanityPost?.meta?.secondaryKeywords) ? sanityPost.meta.secondaryKeywords : []),
+  ]
+    .filter(Boolean)
+    .map((v: string) => slugifyHeading(v));
+  return [...new Set([...category, ...keyword])];
+})();
+
+type PortableLinkMark = {
+  _key?: string;
+  _type?: string;
+  href?: string;
+  target?: boolean;
+  isExternal?: boolean;
+  internalLink?: { _type?: string; slug?: { current?: string } };
+};
+
+const buildHrefFromMark = (mark?: PortableLinkMark): string | null => {
+  if (!mark) return null;
+  if (mark.isExternal && mark.href) return mark.href;
+  const slugValue = mark.internalLink?.slug?.current;
+  const type = mark.internalLink?._type;
+  if (!slugValue || !type) return null;
+  if (type === 'page') return `/s/${slugValue}`;
+  if (type === 'post') return `/blog/${slugValue}`;
+  if (type === 'service') return `/services/${slugValue}`;
+  if (type === 'product') return `/products/${slugValue}`;
+  if (type === 'project') return `/projects/sanity/${slugValue}`;
+  return null;
+};
+
+const getMarkDefsMap = (node: any): Map<string, PortableLinkMark> => {
+  const map = new Map<string, PortableLinkMark>();
+  const defs = Array.isArray(node?.markDefs) ? node.markDefs : [];
+  for (const def of defs) {
+    if (def?._key) map.set(def._key, def);
+  }
+  return map;
+};
+
+const groupedBodyNodes = (() => {
+  if (!Array.isArray(sanityPost?.body)) return [];
+  const out: any[] = [];
+  let currentList: { listType: 'bullet' | 'number'; items: any[] } | null = null;
+  for (const node of sanityPost.body) {
+    const listType = node?.listItem === 'number' ? 'number' : node?.listItem ? 'bullet' : null;
+    if (listType) {
+      if (!currentList || currentList.listType !== listType) {
+        if (currentList) out.push({ _kind: 'list', ...currentList });
+        currentList = { listType, items: [] };
+      }
+      currentList.items.push(node);
+      continue;
+    }
+    if (currentList) {
+      out.push({ _kind: 'list', ...currentList });
+      currentList = null;
+    }
+    out.push(node);
+  }
+  if (currentList) out.push({ _kind: 'list', ...currentList });
+  return out;
+})();
+---
+
+{sanityPost ? (
+  <BlogLayout
+    title={sanityPost?.meta?.title || sanityPost.title || 'Post'}
+    description={sanityPost?.meta?.description || sanityPost.excerpt || ''}
+    author={sanityPost?.authorName || 'Team'}
+    publishedAt={new Date(sanityPost._createdAt)}
+    updatedAt={sanityPost._updatedAt ? new Date(sanityPost._updatedAt) : undefined}
+    tags={sanityPostTags}
+    slug={`en/${sanityPost?.slug || slug}`}
+    headings={sanityHeadings}
+    imageAlt={sanityPost?.meta?.imageAlt || sanityPost.imageAlt || sanityPost.title || undefined}
+    sanityImageUrl={sanityPost?.meta?.imageUrl || sanityPost.imageUrl || undefined}
+    canonicalUrl={sanityPost?.meta?.canonicalUrl || undefined}
+    noindex={Boolean(sanityPost?.meta?.noindex || seoSettings?.defaultNoIndex)}
+    comments={false}
+  >
+    {groupedBodyNodes.length > 0 && (
+      <section class="mx-auto max-w-4xl px-6 pb-10">
+        <article class="prose prose-lg max-w-none dark:prose-invert">
+          {groupedBodyNodes.map((node: any) => {
+            if (node?._kind === 'list' && Array.isArray(node.items)) {
+              const Tag = node.listType === 'number' ? 'ol' : 'ul';
+              return (
+                <Tag>
+                  {node.items.map((item: any) => {
+                    const markDefsMap = getMarkDefsMap(item);
+                    return (
+                      <li>
+                        {(Array.isArray(item.children) ? item.children : []).map((child: any) => {
+                          const marks: string[] = Array.isArray(child?.marks) ? child.marks : [];
+                          const text = child?.text || '';
+                          const linkMarkKey = marks.find((m) => markDefsMap.has(m));
+                          const mark = linkMarkKey ? markDefsMap.get(linkMarkKey) : undefined;
+                          const href = buildHrefFromMark(mark);
+                          const content = (
+                            <>
+                              {marks.includes('strong') ? <strong>{text}</strong> : marks.includes('em') ? <em>{text}</em> : text}
+                            </>
+                          );
+                          if (href) {
+                            return (
+                              <a href={href} target={mark?.target ? '_blank' : undefined} rel={mark?.target ? 'noopener noreferrer' : undefined}>
+                                {content}
+                              </a>
+                            );
+                          }
+                          return content;
+                        })}
+                      </li>
+                    );
+                  })}
+                </Tag>
+              );
+            }
+
+            if (node?._type === "block") {
+              const markDefsMap = getMarkDefsMap(node);
+              const text = Array.isArray(node.children)
+                ? node.children.map((c: any) => c?.text || "").join("")
+                : "";
+              if (!text.trim()) return null;
+              const style = node.style || "normal";
+              if (style === "h1") return <h1>{text}</h1>;
+              if (style === "h2" || style === "h3" || style === "h4") {
+                const id = sanityHeadings[renderedHeadingIndex]?.slug || slugifyHeading(text);
+                renderedHeadingIndex += 1;
+                if (style === 'h2') return <h2 id={id}>{text}</h2>;
+                if (style === 'h3') return <h3 id={id}>{text}</h3>;
+                return <h4 id={id}>{text}</h4>;
+              }
+              if (style === "blockquote") return <blockquote>{text}</blockquote>;
+              return (
+                <p>
+                  {(Array.isArray(node.children) ? node.children : []).map((child: any) => {
+                    const marks: string[] = Array.isArray(child?.marks) ? child.marks : [];
+                    const raw = child?.text || '';
+                    const linkMarkKey = marks.find((m) => markDefsMap.has(m));
+                    const mark = linkMarkKey ? markDefsMap.get(linkMarkKey) : undefined;
+                    const href = buildHrefFromMark(mark);
+                    const content = (
+                      <>
+                        {marks.includes('strong') ? <strong>{raw}</strong> : marks.includes('em') ? <em>{raw}</em> : raw}
+                      </>
+                    );
+                    if (href) {
+                      return (
+                        <a href={href} target={mark?.target ? '_blank' : undefined} rel={mark?.target ? 'noopener noreferrer' : undefined}>
+                          {content}
+                        </a>
+                      );
+                    }
+                    return content;
+                  })}
+                </p>
+              );
+            }
+            if (node?._type === "image" && node?.url) {
+              return <img src={node.url} alt={node.alt || sanityPost.title || ""} loading="lazy" class="rounded-xl" />;
+            }
+            if (node?._type === 'code' && typeof node?.code === 'string') {
+              return (
+                <pre>
+                  <code>{node.code}</code>
+                </pre>
+              );
+            }
+            if (node?._type === "youtube" && node?.videoId) {
+              return (
+                <div class="aspect-video w-full overflow-hidden rounded-xl">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${node.videoId}`}
+                    title="YouTube video"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                    class="h-full w-full"
+                  />
+                </div>
+              );
+            }
+            return null;
+          })}
+        </article>
+      </section>
+    )}
+
+    <SanityBlockRenderer
+      blocks={sanityPost.blocks || []}
+      posts={[]}
+      seoSettings={seoSettings || {}}
+      siteSettings={siteSettings || {}}
+    />
+  </BlogLayout>
+) : (
+  <BlogLayout
+    title={contentPost!.data.title}
+    description={contentPost!.data.description}
+    publishedAt={contentPost!.data.publishedAt}
+    updatedAt={contentPost!.data.updatedAt}
+    author={contentPost!.data.author}
+    image={contentPost!.data.image}
+    imageAlt={contentPost!.data.imageAlt}
+    svgSlug={contentPost!.data.svgSlug}
+    tags={contentPost!.data.tags}
+    slug={contentPost!.id}
+    headings={renderedContent!.headings}
+    toc={contentPost!.data.toc}
+    comments={contentPost!.data.comments}
+  >
+    {ContentComponent && <ContentComponent />}
+  </BlogLayout>
+)}

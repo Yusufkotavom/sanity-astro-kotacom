@@ -8,6 +8,7 @@
     "start": "sanity start",
     "build": "sanity build",
     "deploy": "sanity deploy",
+    "seed:e2e": "node scripts/seed-product-e2e.mjs",
     "typegen": "rm -rf schema.json && sanity schema extract && sanity typegen generate",
     "typecheck": "tsc --noEmit"
   },

@@ -1,0 +1,63 @@
+---
+import PageLayout from "@/layouts/PageLayout.astro";
+import SanityBlockRenderer from "@/components/sanity/SanityBlockRenderer.astro";
+import { getSanityClient } from "@/lib/sanity/client";
+import { isDraftModeEnabled } from "@/lib/sanity/preview";
+import { SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from "@/lib/sanity/queries";
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const sanityClient = getSanityClient({ draftMode: isDraftModeEnabled(Astro.cookies) });
+
+const POST_BY_SLUG_QUERY = `*[_type == "post" && slug.current == $slug][0]{
+  _id,
+  title,
+  excerpt,
+  "slug": slug.current,
+  "imageUrl": image.asset->url,
+  "imageAlt": image.alt,
+  "categorySlugs": categories[]->slug.current,
+  blocks[]{
+    ...,
+    images[]{alt, "url": asset->url},
+    testimonial[]->{_id, name, title, rating, body, "imageUrl": image.asset->url},
+    faqs[]{"question": @->question, "answer": @->answer}
+  },
+  meta{
+    ...,
+    "imageUrl": image.asset->url,
+    "imageAlt": image.alt
+  }
+}`;
+
+const post = await sanityClient.fetch(POST_BY_SLUG_QUERY, { slug });
+const [siteSettings, seoSettings] = await Promise.all([
+  sanityClient.fetch(SITE_SETTINGS_QUERY),
+  sanityClient.fetch(SEO_SETTINGS_QUERY),
+]);
+
+if (!post) {
+  return Astro.redirect("/404");
+}
+---
+
+<PageLayout
+  title={post?.meta?.title || post.title || "Post"}
+  description={post?.meta?.description || post.excerpt || ""}
+  image={post?.meta?.imageUrl || post.imageUrl || undefined}
+  imageAlt={post?.meta?.imageAlt || post.imageAlt || post.title || undefined}
+  canonicalUrl={post?.meta?.canonicalUrl || undefined}
+  noindex={Boolean(post?.meta?.noindex || seoSettings?.defaultNoIndex)}
+>
+  <article class="mx-auto max-w-5xl px-4 pt-24">
+    <h1 class="text-4xl font-bold">{post.title}</h1>
+    {post.excerpt && <p class="mt-3 text-foreground-muted">{post.excerpt}</p>}
+  </article>
+  <SanityBlockRenderer
+    blocks={post.blocks || []}
+    posts={[]}
+    seoSettings={seoSettings || {}}
+    siteSettings={siteSettings || {}}
+  />
+</PageLayout>

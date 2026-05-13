@@ -1,0 +1,39 @@
+---
+import BlogCard from './BlogCard.astro';
+import { findRelatedUnifiedPosts, getUnifiedBlogPosts } from '@/lib/blog-unified';
+
+interface Props {
+  currentSlug: string;
+  tags: string[];
+  locale?: string;
+  maxPosts?: number;
+}
+
+const { currentSlug, tags, locale = 'en', maxPosts = 3 } = Astro.props;
+const allPosts = await getUnifiedBlogPosts(locale);
+const normalizedCurrent = currentSlug.replace(`${locale}/`, '').replace(/^\/blog\//, '');
+const relatedPosts = findRelatedUnifiedPosts(allPosts, normalizedCurrent, tags, maxPosts);
+---
+
+{relatedPosts.length > 0 && (
+  <section class="border-t border-border py-[var(--space-section-sm)]">
+    <h2 class="font-display text-2xl font-bold text-foreground mb-[var(--space-stack-lg)]">
+      Related Posts
+    </h2>
+
+    <div class="grid gap-[var(--space-stack-lg)] md:grid-cols-2 lg:grid-cols-3">
+      {relatedPosts.map((post) => (
+        <BlogCard
+          title={post.title}
+          description={post.description}
+          href={post.href}
+          publishedAt={post.publishedAt}
+          tags={post.tags}
+          author={post.author}
+          imageUrl={post.imageUrl}
+          svgSlug={post.svgSlug}
+        />
+      ))}
+    </div>
+  </section>
+)}

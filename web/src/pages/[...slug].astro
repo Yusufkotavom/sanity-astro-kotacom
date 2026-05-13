@@ -1,0 +1,24 @@
+---
+import { getSanityClient } from "@/lib/sanity/client";
+import { isDraftModeEnabled } from "@/lib/sanity/preview";
+import { REDIRECT_BY_SOURCE_QUERY } from "@/lib/sanity/queries";
+
+export const prerender = false;
+
+const slug = Astro.params.slug;
+const sourcePath = `/${Array.isArray(slug) ? slug.join("/") : slug || ""}`;
+const normalizedSource = sourcePath.length > 1 && sourcePath.endsWith("/")
+  ? sourcePath.slice(0, -1)
+  : sourcePath;
+const sanityClient = getSanityClient({ draftMode: isDraftModeEnabled(Astro.cookies) });
+
+const redirect = await sanityClient
+  .fetch(REDIRECT_BY_SOURCE_QUERY, { source: normalizedSource })
+  .catch(() => null);
+
+if (redirect?.destination) {
+  return Astro.redirect(redirect.destination, redirect.permanent === false ? 307 : 308);
+}
+
+return Astro.redirect("/404");
+---

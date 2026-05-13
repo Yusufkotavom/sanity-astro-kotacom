@@ -1,0 +1,79 @@
+---
+import PageLayout from "@/layouts/PageLayout.astro";
+import SanityBlockRenderer from "@/components/sanity/SanityBlockRenderer.astro";
+import { getSanityClient } from "@/lib/sanity/client";
+import { isDraftModeEnabled } from "@/lib/sanity/preview";
+import { POSTS_QUERY, SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from "@/lib/sanity/queries";
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const sanityClient = getSanityClient({ draftMode: isDraftModeEnabled(Astro.cookies) });
+
+const PAGE_BY_SLUG_QUERY = `*[_type == "page" && slug.current == $slug][0]{
+  _id,
+  title,
+  "slug": slug.current,
+  blocks[] {
+    ...,
+    images[]{
+      alt,
+      "url": asset->url
+    },
+    testimonial[]->{
+      _id,
+      name,
+      title,
+      rating,
+      body,
+      "imageUrl": image.asset->url
+    },
+    faqs[] {
+      "question": @->question,
+      "answer": @->answer
+    },
+    links[] {
+      ...
+    },
+    columns[] {
+      ...,
+      "postData": post->{
+        title,
+        excerpt,
+        "slug": slug.current
+      }
+    }
+  },
+  meta
+  ,
+  "metaImageUrl": meta.image.asset->url,
+  "metaImageAlt": meta.image.alt
+}`;
+
+const page = await sanityClient.fetch(PAGE_BY_SLUG_QUERY, { slug });
+const [posts, seoSettings, siteSettings] = await Promise.all([
+  sanityClient.fetch(POSTS_QUERY),
+  sanityClient.fetch(SEO_SETTINGS_QUERY),
+  sanityClient.fetch(SITE_SETTINGS_QUERY),
+]);
+
+if (!page) {
+  return Astro.redirect("/404");
+}
+---
+
+<PageLayout
+  title={page?.meta?.title || page.title || "Page"}
+  description={page?.meta?.description || ""}
+  image={page?.metaImageUrl || undefined}
+  imageAlt={page?.metaImageAlt || page?.title || undefined}
+  canonicalUrl={page?.meta?.canonicalUrl || undefined}
+  noindex={Boolean(page?.meta?.noindex || seoSettings?.defaultNoIndex)}
+>
+  <SanityBlockRenderer
+    blocks={page.blocks || []}
+    posts={posts || []}
+    seoSettings={seoSettings || {}}
+    siteSettings={siteSettings || {}}
+  />
+</PageLayout>

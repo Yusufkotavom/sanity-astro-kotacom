@@ -1,0 +1,31 @@
+---
+import PageLayout from "@/layouts/PageLayout.astro";
+import BlogCard from "@/components/blog/BlogCard.astro";
+import { getUnifiedBlogPosts, slugifyTag } from "@/lib/blog-unified";
+
+export const prerender = false;
+const { slug } = Astro.params;
+const posts = (await getUnifiedBlogPosts("en")).filter((post) =>
+  post.tags.some((tag) => slugifyTag(tag) === slug)
+);
+---
+
+<PageLayout title={`Tag: ${slug}`} description={`Posts with tag ${slug}`}>
+  <section class="mx-auto max-w-6xl px-4 pt-24 pb-12">
+    <h1 class="text-3xl font-bold">Tag: {slug}</h1>
+    <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {(posts || []).map((post: any) => (
+        <BlogCard
+          title={post.title}
+          description={post.description || ""}
+          href={post.href}
+          publishedAt={post.publishedAt}
+          tags={post.tags || []}
+          author={post.author}
+          imageUrl={post.imageUrl}
+          svgSlug={post.svgSlug}
+        />
+      ))}
+    </div>
+  </section>
+</PageLayout>

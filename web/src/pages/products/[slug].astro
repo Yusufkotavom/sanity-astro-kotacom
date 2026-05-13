@@ -1,0 +1,76 @@
+---
+import PageLayout from "@/layouts/PageLayout.astro";
+import SanityBlockRenderer from "@/components/sanity/SanityBlockRenderer.astro";
+import Card from "@/components/ui/data-display/Card/Card.astro";
+import { getSanityClient } from "@/lib/sanity/client";
+import { isDraftModeEnabled } from "@/lib/sanity/preview";
+import { SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from "@/lib/sanity/queries";
+
+export const prerender = false;
+const { slug } = Astro.params;
+const sanityClient = getSanityClient({ draftMode: isDraftModeEnabled(Astro.cookies) });
+
+const PRODUCT_BY_SLUG_QUERY = `*[_type == "product" && slug.current == $slug][0]{
+  _id,
+  title,
+  excerpt,
+  price,
+  currency,
+  availability,
+  cta,
+  "imageUrl": image.asset->url,
+  "imageAlt": image.alt,
+  "galleryUrls": gallery[].asset->url,
+  blocks[]{
+    ...,
+    images[]{alt, "url": asset->url},
+    testimonial[]->{_id, name, title, rating, body, "imageUrl": image.asset->url},
+    faqs[]{"question": @->question, "answer": @->answer}
+  },
+  meta{
+    ...,
+    "imageUrl": image.asset->url,
+    "imageAlt": image.alt
+  }
+}`;
+
+const product = await sanityClient.fetch(PRODUCT_BY_SLUG_QUERY, { slug });
+const [siteSettings, seoSettings] = await Promise.all([
+  sanityClient.fetch(SITE_SETTINGS_QUERY),
+  sanityClient.fetch(SEO_SETTINGS_QUERY),
+]);
+
+if (!product) {
+  return Astro.redirect("/404");
+}
+---
+
+<PageLayout
+  title={product?.meta?.title || product.title || "Product"}
+  description={product?.meta?.description || product.excerpt || ""}
+  image={product?.meta?.imageUrl || product.imageUrl || undefined}
+  imageAlt={product?.meta?.imageAlt || product.imageAlt || product.title || undefined}
+  canonicalUrl={product?.meta?.canonicalUrl || undefined}
+  noindex={Boolean(product?.meta?.noindex || seoSettings?.defaultNoIndex)}
+>
+  <section class="mx-auto max-w-6xl px-4 pt-24">
+    <h1 class="text-4xl font-bold">{product.title}</h1>
+    {product.excerpt && <p class="mt-3 text-foreground-muted">{product.excerpt}</p>}
+    <div class="mt-6 grid gap-4 md:grid-cols-3">
+      <Card><p class="text-sm"><strong>Price:</strong> {product.price ? `${product.currency || "IDR"} ${product.price}` : "-"}</p></Card>
+      <Card><p class="text-sm"><strong>Availability:</strong> {product.availability || "-"}</p></Card>
+      <Card>
+        <a class="text-sm font-medium text-brand-600" href={product?.cta?.href || "#"}>{product?.cta?.title || "Contact"}</a>
+      </Card>
+    </div>
+    {Array.isArray(product.galleryUrls) && product.galleryUrls.length > 0 && (
+      <div class="mt-6 grid gap-3 md:grid-cols-3">
+        {product.galleryUrls.map((url: string) => (
+          <img src={url} alt={product.title || "Product"} class="h-44 w-full rounded-lg object-cover" loading="lazy" />
+        ))}
+      </div>
+    )}
+  </section>
+
+  <SanityBlockRenderer blocks={product.blocks || []} posts={[]} seoSettings={seoSettings || {}} siteSettings={siteSettings || {}} />
+</PageLayout>

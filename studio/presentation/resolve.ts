@@ -30,7 +30,7 @@ export const resolve: PresentationPluginOptions["resolve"] = {
         locations: [
           {
             title: doc?.title || "Untitled",
-            href: `/projects/${doc?.slug}`,
+            href: `/projects/sanity/${doc?.slug}`,
           },
           { title: "Projects", href: "/projects" },
         ],
@@ -51,7 +51,7 @@ export const resolve: PresentationPluginOptions["resolve"] = {
       filter: `_type == 'post' && slug.current == $slug`,
     },
     {
-      route: "/projects/:slug",
+      route: "/projects/sanity/:slug",
       filter: `_type == 'project' && slug.current == $slug`,
     },
   ]),

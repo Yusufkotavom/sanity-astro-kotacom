@@ -1,0 +1,70 @@
+---
+import PageLayout from "@/layouts/PageLayout.astro";
+import SanityBlockRenderer from "@/components/sanity/SanityBlockRenderer.astro";
+import Card from "@/components/ui/data-display/Card/Card.astro";
+import { getSanityClient } from "@/lib/sanity/client";
+import { isDraftModeEnabled } from "@/lib/sanity/preview";
+import { SEO_SETTINGS_QUERY, SITE_SETTINGS_QUERY } from "@/lib/sanity/queries";
+
+export const prerender = false;
+const { slug } = Astro.params;
+const sanityClient = getSanityClient({ draftMode: isDraftModeEnabled(Astro.cookies) });
+
+const PROJECT_BY_SLUG_QUERY = `*[_type == "project" && slug.current == $slug][0]{
+  _id,
+  title,
+  excerpt,
+  clientName,
+  industry,
+  completionYear,
+  projectType,
+  repositoryUrl,
+  previewUrl,
+  projectUrl,
+  cta,
+  "imageUrl": image.asset->url,
+  "imageAlt": image.alt,
+  blocks[]{
+    ...,
+    images[]{alt, "url": asset->url},
+    testimonial[]->{_id, name, title, rating, body, "imageUrl": image.asset->url},
+    faqs[]{"question": @->question, "answer": @->answer}
+  },
+  meta{
+    ...,
+    "imageUrl": image.asset->url,
+    "imageAlt": image.alt
+  }
+}`;
+
+const project = await sanityClient.fetch(PROJECT_BY_SLUG_QUERY, { slug });
+const [siteSettings, seoSettings] = await Promise.all([
+  sanityClient.fetch(SITE_SETTINGS_QUERY),
+  sanityClient.fetch(SEO_SETTINGS_QUERY),
+]);
+
+if (!project) {
+  return Astro.redirect("/404");
+}
+---
+
+<PageLayout
+  title={project?.meta?.title || project.title || "Project"}
+  description={project?.meta?.description || project.excerpt || ""}
+  image={project?.meta?.imageUrl || project.imageUrl || undefined}
+  imageAlt={project?.meta?.imageAlt || project.imageAlt || project.title || undefined}
+  canonicalUrl={project?.meta?.canonicalUrl || undefined}
+  noindex={Boolean(project?.meta?.noindex || seoSettings?.defaultNoIndex)}
+>
+  <section class="mx-auto max-w-6xl px-4 pt-24">
+    <h1 class="text-4xl font-bold">{project.title}</h1>
+    {project.excerpt && <p class="mt-3 text-foreground-muted">{project.excerpt}</p>}
+    <div class="mt-6 grid gap-4 md:grid-cols-3">
+      <Card><p class="text-sm"><strong>Client:</strong> {project.clientName || "-"}</p></Card>
+      <Card><p class="text-sm"><strong>Industry:</strong> {project.industry || "-"}</p></Card>
+      <Card><p class="text-sm"><strong>Year:</strong> {project.completionYear || "-"}</p></Card>
+    </div>
+  </section>
+
+  <SanityBlockRenderer blocks={project.blocks || []} posts={[]} seoSettings={seoSettings || {}} siteSettings={siteSettings || {}} />
+</PageLayout>

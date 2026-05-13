@@ -1,0 +1,67 @@
+---
+/**
+ * PageLayout
+ * Layout wrapper for standard content pages (non-landing)
+ * Uses Header + Footer with content page configuration
+ */
+import BaseLayout from './BaseLayout.astro';
+import Header from '@/components/layout/Header.astro';
+import Footer from '@/components/layout/Footer.astro';
+import { getSanityGlobalData } from '@/lib/sanity/global';
+import { buildShellData } from '@/lib/sanity/shell';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  imageAlt?: string;
+  canonicalUrl?: string;
+  noindex?: boolean;
+  nofollow?: boolean;
+  showScrollProgress?: boolean;
+  eagerReveal?: boolean;
+}
+
+const { title, description, image, imageAlt, canonicalUrl, noindex, nofollow, showScrollProgress = false, eagerReveal = false } = Astro.props;
+const { navigation, siteSettings } = await getSanityGlobalData();
+const shell = buildShellData(navigation, siteSettings);
+
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  image={image}
+  imageAlt={imageAlt}
+  canonicalUrl={canonicalUrl}
+  noindex={noindex}
+  nofollow={nofollow}
+  eagerReveal={eagerReveal}
+>
+  <Header
+    slot="header"
+    position="fixed"
+    shape="bar"
+    variant="solid"
+    size="lg"
+    showActiveState
+    nav={shell.headerNav}
+    showCta={Boolean(shell.waHref || shell.headerCta)}
+    cta={shell.waHref ? { label: 'WhatsApp', href: shell.waHref } : shell.headerCta}
+    secondaryCta={shell.waHref && shell.headerCta ? shell.headerCta : undefined}
+    showScrollProgress={showScrollProgress}
+  />
+
+  <main class="min-h-screen pt-16">
+    <slot />
+  </main>
+
+  <Footer
+    slot="footer"
+    layout="simple"
+    nav={shell.footerNav}
+    socialLinks={shell.footerSocial}
+    showSocial={shell.footerSocial.length > 0}
+    tagline={siteSettings?.companyTagline || undefined}
+  />
+</BaseLayout>

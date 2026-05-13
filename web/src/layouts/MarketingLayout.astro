@@ -1,0 +1,68 @@
+---
+/**
+ * MarketingLayout
+ * Layout wrapper for marketing pages with floating capsule header
+ * Uses Header shape="floating" for a distinctive visual identity
+ */
+import BaseLayout from './BaseLayout.astro';
+import Header from '@/components/layout/Header.astro';
+import Footer from '@/components/layout/Footer.astro';
+import { getSanityGlobalData } from '@/lib/sanity/global';
+import { buildShellData } from '@/lib/sanity/shell';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  imageAlt?: string;
+  noindex?: boolean;
+  nofollow?: boolean;
+  includeOrgSchema?: boolean;
+}
+
+const {
+  title,
+  description,
+  image,
+  imageAlt,
+  noindex = false,
+  nofollow = false,
+  includeOrgSchema = false,
+} = Astro.props;
+const { navigation, siteSettings } = await getSanityGlobalData();
+const shell = buildShellData(navigation, siteSettings);
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  image={image}
+  imageAlt={imageAlt}
+  noindex={noindex}
+  nofollow={nofollow}
+  includeOrgSchema={includeOrgSchema}
+>
+  <Header
+    slot="header"
+    shape="bar"
+    variant="solid"
+    position="fixed"
+    colorScheme="default"
+    nav={shell.headerNav}
+    showCta={Boolean(shell.waHref || shell.headerCta)}
+    cta={shell.waHref ? { label: 'WhatsApp', href: shell.waHref } : shell.headerCta}
+    secondaryCta={shell.waHref && shell.headerCta ? shell.headerCta : undefined}
+  />
+
+  <slot />
+
+  <Footer
+    slot="footer"
+    layout="simple"
+    background="secondary"
+    nav={shell.footerNav}
+    socialLinks={shell.footerSocial}
+    showSocial={shell.footerSocial.length > 0}
+    tagline={siteSettings?.companyTagline || undefined}
+  />
+</BaseLayout>
