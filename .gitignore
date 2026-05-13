@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+
+# build outputs
+web/dist/
+studio/dist/
+web/.astro/
+studio/.sanity/
+
+# env
+.env
+*.env
+!.env.example
+web/.env
+studio/.env
+
+# cache/logs
+*.log
+.DS_Store
