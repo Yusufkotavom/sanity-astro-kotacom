@@ -1,0 +1,101 @@
+import { defineField, defineType } from "sanity";
+import { Files } from "lucide-react";
+import { orderRankField } from "@sanity/orderable-document-list";
+import meta from "../blocks/shared/meta";
+import pageBlocks from "../blocks/shared/page-blocks";
+
+const HYBRID_PAGE_SLUGS = new Set([
+  "home-pepar",
+  "index",
+  "layanan",
+  "pembuatan-website",
+  "percetakan",
+  "software",
+]);
+
+export default defineType({
+  name: "page",
+  type: "document",
+  title: "Page",
+  icon: Files,
+  groups: [
+    {
+      name: "content",
+      title: "Content",
+    },
+    {
+      name: "seo",
+      title: "SEO",
+    },
+    {
+      name: "settings",
+      title: "Settings",
+    },
+  ],
+  fields: [
+    defineField({ name: "title", type: "string", group: "content" }),
+    defineField({
+      name: "slug",
+      title: "Slug",
+      type: "slug",
+      group: "settings",
+      options: {
+        source: "title",
+        maxLength: 96,
+      },
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "thumbnail",
+      title: "Thumbnail",
+      type: "image",
+      group: "content",
+      fields: [
+        {
+          name: "alt",
+          type: "string",
+          title: "Alternative Text",
+        },
+      ],
+    }),
+    pageBlocks,
+    defineField({
+      name: "topBlockCount",
+      title: "Top Block Count",
+      description:
+        "Untuk page hybrid, tentukan berapa block pertama yang dirender sebelum section code-owned di tengah halaman.",
+      type: "number",
+      group: "settings",
+      initialValue: 3,
+      validation: (Rule) => Rule.integer().min(0),
+    }),
+    defineField({
+      name: "aggregateRating",
+      title: "Aggregate Rating",
+      type: "aggregateRating",
+      group: "seo",
+      description: "Page-level rating override. Falls back to SEO Settings default if empty.",
+    }),
+    meta,
+    orderRankField({ type: "page" }),
+  ],
+  preview: {
+    select: {
+      title: "title",
+      slug: "slug.current",
+      topBlockCount: "topBlockCount",
+    },
+    prepare({ title, slug, topBlockCount }) {
+      const isHybrid = typeof slug === "string" && HYBRID_PAGE_SLUGS.has(slug);
+      const splitCount =
+        typeof topBlockCount === "number" && Number.isFinite(topBlockCount)
+          ? Math.max(0, topBlockCount)
+          : 0;
+
+      return {
+        title: title || slug || "Untitled page",
+        subtitle: isHybrid ? `Hybrid · Top ${splitCount}` : slug || "Page",
+      };
+    },
+  },
+});

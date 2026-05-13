@@ -1,0 +1,5 @@
+*.tar.gz
+.sanity
+dist
+tmp
+.vercel
